@@ -27,6 +27,7 @@ import { pageArchive } from '../features/archive.js';
 import { pageAgenda } from '../pages/agenda.js';
 import { pagePeople } from '../pages/people.js';
 import { pageMeetings } from '../pages/meetings.js';
+import { pageAgents } from '../pages/agents.js';
 
 export function renderShell() {
   const u = S.ui;
@@ -45,6 +46,7 @@ export function renderPage() {
   const r = S.ui.route;
   try {
     const P = {
+      agents: pageAgents,
       home: pageHome,
       agenda: pageAgenda,
       people: pagePeople,
@@ -103,6 +105,7 @@ export function renderSidebar() {
     </div>
     <div class="side-scroll" data-keep="side">
       ${u.collapsed ? `<button class="sitem" data-a="toggleSide" data-tip="Expand sidebar" data-tip-pos="right" aria-label="Expand sidebar">${ic('panel-left', 16)}</button>` : ''}
+      ${!hid.agents ? sItem('agents', 'Agent', 'sparkles') : ''}
       ${!hid.home ? sItem('home', 'Home', 'house') : ''}
       ${!hid.inbox ? sItem('inbox', 'Inbox', 'inbox', { ct: unreadInbox || '', dot: true }) : ''}
       ${!hid.mytasks ? sItem('mytasks', 'My Tasks', 'circle-check', { ct: myOpen || '' }) : ''}

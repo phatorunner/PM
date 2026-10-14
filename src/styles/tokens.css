@@ -217,20 +217,20 @@
   color-scheme: dark;
 }
 :root[data-theme='revelation'] {
-  --bg: #191919;
-  --bg-side: #111111;
-  --surface: #1e1e1e;
-  --surface-2: #242424;
-  --surface-3: #2c2c2c;
-  --sunken: #151515;
-  --overlay: rgba(0, 0, 0, 0.7);
-  --border: #292929;
-  --border-strong: #383838;
-  --divider: #222222;
-  --text: #f4f4f5;
-  --text-2: #a1a1aa;
-  --text-3: #71717a;
-  --text-4: #52525b;
+  --bg: #101010;
+  --bg-side: #0a0a0a;
+  --surface: #171717;
+  --surface-2: #1e1e1e;
+  --surface-3: #262626;
+  --sunken: #0d0d0d;
+  --overlay: rgba(0, 0, 0, 0.75);
+  --border: #222222;
+  --border-strong: #303030;
+  --divider: #1c1c1c;
+  --text: #ededed;
+  --text-2: #999999;
+  --text-3: #6b6b6b;
+  --text-4: #4a4a4a;
   --text-inv: #09090b;
   --accent: var(--acc-d);
   --on-accent: #111111;

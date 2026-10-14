@@ -14,7 +14,6 @@ import { TEMPLATES, closeModal, openModal } from '../overlays/modals.js';
 import { closePop, openPop, tgt } from '../overlays/popovers.js';
 import { strengthMeter } from '../pages/settings.js';
 import { fetchGoogleUserProfile, requestGoogleOAuth, syncGoogleCalendar } from '../core/gcal.js';
-import { signInWithEmail, signUpWithEmail, signInWithGoogle, signOutSupabase } from '../core/supabase.js';
 
 export const A = {},
   IN = {},
@@ -2137,7 +2136,7 @@ export function enterApp(msg) {
   go(S.prefs.home || 'home');
   toast(msg);
 }
-A.doLogin = async () => {
+A.doLogin = () => {
   const e = (S.ui.errors = {});
   const em = $('#l-email').value.trim(),
     pw = $('#l-pw').value;
@@ -2151,53 +2150,63 @@ A.doLogin = async () => {
     if (!e.email) $('#l-pw').value = pw;
     return;
   }
-
-  const btn = $('#login-btn');
-  if (btn) btn.classList.add('is-loading');
-
-  try {
-    const data = await signInWithEmail(em, pw);
-    const user = data?.user;
-    if (user) {
-      mutate(() => {
-        const uName = user.user_metadata?.full_name || user.email.split('@')[0];
-        S.prefs.name = uName;
-        const curMe = me();
-        if (curMe) {
-          curMe.name = uName;
-          curMe.email = user.email;
-        }
-      });
-      enterApp(`Signed in as ${user.email}`);
-    } else {
-      enterApp(`Signed in as ${em}`);
-    }
-  } catch (err) {
-    if (btn) btn.classList.remove('is-loading');
-    S.ui.errors.login = err.message || 'Invalid email or password';
-    render();
-    toast(err.message || 'Login failed', { kind: 'err' });
-  }
+  loadingBtn('login-btn', 750, () => enterApp(`Signed in as ${em}`));
 };
 
-A.socialAuth = async el => {
+A.socialAuth = el => {
   const provider = el.dataset.v;
   if (provider === 'Google') {
     el.classList.add('is-loading');
-    try {
-      await signInWithGoogle();
-      // Supabase redirects the browser to Google OAuth consent screen
-    } catch (err) {
-      el.classList.remove('is-loading');
-      toast(`Google auth error: ${err.message}`, { kind: 'err' });
-    }
+    requestGoogleOAuth({
+      clientId: GOOGLE_CLIENT_ID,
+      onToken: async token => {
+        try {
+          const profile = await fetchGoogleUserProfile(token);
+          mutate(() => {
+            if (profile.name) S.prefs.name = profile.name;
+            const curMe = me();
+            if (curMe) {
+              if (profile.name) curMe.name = profile.name;
+              if (profile.email) curMe.email = profile.email;
+              if (profile.picture) curMe.avatar = profile.picture;
+            }
+            D().gcal = {
+              ...(D().gcal || {}),
+              connected: true,
+              accessToken: token,
+              clientId: GOOGLE_CLIENT_ID,
+              calendarId: 'primary',
+              error: null,
+            };
+          });
+
+          syncGoogleCalendar({ accessToken: token, calendarId: 'primary' })
+            .then(events => {
+              toast(`Google Calendar synchronized (${events.length} events)`, { kind: 'info' });
+              render();
+            })
+            .catch(err => {
+              console.warn('Initial calendar sync notice:', err);
+            });
+
+          enterApp(`Signed in as ${profile.name || profile.email || 'Google User'}`);
+        } catch (err) {
+          el.classList.remove('is-loading');
+          toast(`Google sign-in error: ${err.message}`, { kind: 'err' });
+        }
+      },
+      onError: err => {
+        el.classList.remove('is-loading');
+        toast(`Google sign-in cancelled or failed: ${err.message}`, { kind: 'err' });
+      },
+    });
     return;
   }
   el.classList.add('is-loading');
   setTimeout(() => enterApp(`Signed in with ${provider}`), 800);
 };
 
-A.doSignup = async () => {
+A.doSignup = () => {
   const e = (S.ui.errors = {});
   const nm = $('#s-name').value.trim(),
     em = $('#s-email').value.trim(),
@@ -2212,37 +2221,11 @@ A.doSignup = async () => {
     $('#s-email').value = em;
     return;
   }
-
-  const btn = $('#signup-btn');
-  if (btn) btn.classList.add('is-loading');
-
-  try {
-    const data = await signUpWithEmail(em, pw, nm);
-    if (btn) btn.classList.remove('is-loading');
-    if (data.session) {
-      // Auto-confirmed or instant session
-      mutate(() => {
-        if (nm) S.prefs.name = nm;
-        const curMe = me();
-        if (curMe) {
-          if (nm) curMe.name = nm;
-          curMe.email = em;
-        }
-      });
-      enterApp(`Welcome to Revelation Fintech, ${nm || em}!`);
-    } else {
-      // Confirmation link sent
-      S.ui.auth = 'verify';
-      startResend();
-      render();
-      toast('Verification email sent! Check your inbox.');
-    }
-  } catch (err) {
-    if (btn) btn.classList.remove('is-loading');
-    S.ui.errors.email = err.message;
+  loadingBtn('signup-btn', 800, () => {
+    S.ui.auth = 'verify';
+    startResend();
     render();
-    toast(err.message || 'Signup failed', { kind: 'err' });
-  }
+  });
 };
 export function startResend() {
   S.ui.resendT = 30;
