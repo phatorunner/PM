@@ -58,6 +58,7 @@ export const FIELDS = {
 export function viewOf(key) {
   if (!S.views[key])
     S.views[key] = {
+      mode: key === 'mytasks' ? 'board' : undefined,
       filters: [],
       sort: { f: 'manual', dir: 1 },
       group: key === 'tasks' || key === 'mytasks' ? 'status' : 'status',

@@ -196,3 +196,17 @@
   font-size: var(--fs-2xs);
   color: var(--text-3);
 }
+
+/* Agenda unified items */
+.gcal-ev {
+  border-left: 3px solid #4285f4;
+  background: color-mix(in srgb, #4285f4 12%, var(--surface));
+}
+.gcal-ev:hover {
+  background: color-mix(in srgb, #4285f4 20%, var(--surface));
+}
+.ms-ev {
+  border-left: 3px solid var(--c);
+  background: color-mix(in srgb, var(--c) 12%, var(--surface));
+  font-weight: 500;
+}

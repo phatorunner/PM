@@ -2,10 +2,11 @@
 import { $$, MOD, ago, esc, fmtDate } from '../core/utils.js';
 import { ic } from '../core/icons.js';
 import { PCOLORS, PICONS } from '../core/constants.js';
-import { D, S, mem, pColor, proj, task, teamsList } from '../core/store.js';
+import { D, S, calcomState, meeting, mem, pColor, proj, task, teamsList } from '../core/store.js';
 import { FT, av, filePrev, lbl, prPill, stPill } from '../ui/helpers.js';
 import { focusKey, render } from '../shell/render.js';
 import { teamModal } from '../features/teams.js';
+import { contactDetailModal } from '../pages/people.js';
 
 export function openModal(m) {
   S.ui.modalOpeners = S.ui.modalOpeners || [];
@@ -56,6 +57,24 @@ export function modalHtml(m) {
         'sm',
         `${H('Save view', 'Save the current filters as a tab on this project.')}<form class="modal-b" data-submit="saveViewSubmit"><div class="field"><label class="label" for="sv-name">View name</label><input class="input" id="sv-name" placeholder="e.g. Design review queue" autofocus></div><div class="field"><label class="label" for="sv-type">Layout</label><select class="select" id="sv-type"><option value="list">List</option><option value="board">Board</option><option value="table">Table</option></select></div>${m.nf ? `<div class="hint">${m.nf} filter${m.nf > 1 ? 's' : ''} will be saved with this view.</div>` : '<div class="alert info">' + ic('info', 14) + '<span>No filters are active — the view will show all tasks. You can add filters after saving.</span></div>'}</form><div class="modal-f"><span class="sp"></span><button class="btn btn-secondary" data-a="closeModal">Cancel</button><button class="btn btn-primary" data-a="saveViewSubmit">Save view</button></div>`,
       );
+    case 'gcal':
+      return wrap('', gcalConfigModal(H));
+    case 'contact':
+      return wrap('', contactModal(m, H));
+    case 'contactDetail':
+      return wrap('', contactDetailModal(m.contact));
+    case 'meeting':
+      return wrap('', meetingModal(m, H));
+    case 'newMeeting':
+      return wrap('', newMeetingModal(m, H));
+    case 'rescheduleMeeting':
+      return wrap('', rescheduleMeetingModal(m, H));
+    case 'editMeeting':
+      return wrap('', editMeetingModal(m, H));
+    case 'calcomSettings':
+      return wrap('', calcomSettingsModal(H));
+    case 'calcomAvailability':
+      return wrap('', calcomAvailabilityModal(H));
   }
   return '';
 }
@@ -158,7 +177,7 @@ export function projectModal(m, H) {
         .join('')}</div></div>
     </div>
     <div class="row" style="gap:12px;flex-wrap:wrap">
-      <div class="field" style="flex:1;min-width:150px"><label class="label" for="p-team">Team</label><select class="select" id="p-team" data-in="pform" data-f="team">${teamsList()
+      <div class="field" style="flex:1;min-width:150px"><label class="label" for="p-team">Team</label><select class="select" id="p-team" data-in="pform" data-f="team"><option value="" ${!f.team ? 'selected' : ''}>No team</option>${teamsList()
         .map(t => `<option value="${t.id}" ${f.team === t.id ? 'selected' : ''}>${t.name}</option>`)
         .join('')}</select></div>
       <div class="field" style="flex:1;min-width:150px"><label class="label" for="p-lead">Lead</label><select class="select" id="p-lead" data-in="pform" data-f="lead">${D()
@@ -219,7 +238,7 @@ export function inviteModal(m, H) {
   <form class="modal-b" data-submit="submitInvite">
     <div class="field"><label class="label" for="inv-emails">Email addresses</label><textarea class="textarea ${err ? 'is-error' : ''}" id="inv-emails" placeholder="name@company.com, another@company.com" rows="3" autofocus>${esc(S.ui.inviteDraft || '')}</textarea>${err ? `<span class="err">${ic('circle-alert', 12)}${err}</span>` : '<span class="hint">Separate multiple addresses with commas.</span>'}</div>
     <div class="row" style="gap:12px"><div class="field grow"><label class="label" for="inv-role">Role</label><select class="select" id="inv-role">${['Member', 'Admin', 'Guest'].map(r => `<option>${r}</option>`).join('')}</select></div>
-    <div class="field grow"><label class="label" for="inv-team">Team</label><select class="select" id="inv-team">${teamsList()
+    <div class="field grow"><label class="label" for="inv-team">Team</label><select class="select" id="inv-team"><option value="">No team</option>${teamsList()
       .map(t => `<option value="${t.id}">${t.name}</option>`)
       .join('')}</select></div></div>
     <div class="alert info">${ic('info', 14)}<span><b>Guests</b> can only see projects they're added to and can't create projects.</span></div>
@@ -288,3 +307,380 @@ export function filePreviewModal(m, H) {
   ${m.tid ? `<div class="row faint" style="font-size:12.5px">${ic('link', 13)}Attached to <button class="link" data-a="openTask" data-id="${m.tid}">${esc(task(m.tid)?.title)}</button></div>` : ''}</div>
   <div class="modal-f"><button class="btn btn-secondary" data-a="copyLink" data-fid="${f.id}">${ic('link', 14)}Copy link</button><span class="sp"></span><button class="btn btn-primary" data-a="closeModal">Close</button></div>`;
 }
+
+export function gcalConfigModal(H) {
+  const g = D().gcal || {};
+  return `${H('Google Calendar Integration', 'Connect via Google Calendar API with OAuth 2.0 or an API key to sync meetings.')}
+  <form class="modal-b" data-submit="saveGcalConfig" style="gap:14px">
+    <div class="panel" style="padding:14px;background:var(--surface)">
+      <div class="row" style="gap:10px;margin-bottom:8px">
+        <span class="pdot" style="--c:${g.connected ? '#4285F4' : 'var(--text-3)'};width:10px;height:10px"></span>
+        <b style="font-size:14px">${g.connected ? 'Connected to Google Calendar' : 'Not Connected'}</b>
+        ${g.connected ? '<span class="badge green">Active</span>' : '<span class="badge gray">Disconnected</span>'}
+      </div>
+      <div class="faint" style="font-size:12.5px">
+        ${g.lastSynced ? `Last synchronized ${ago(g.lastSynced)}. ${g.events?.length || 0} events loaded.` : 'Configure your Google Cloud credentials below to synchronize events.'}
+      </div>
+      ${g.error ? `<div class="alert danger" style="margin-top:10px">${ic('circle-alert', 14)}<span>${esc(g.error)}</span></div>` : ''}
+    </div>
+
+    <div class="field">
+      <label class="label" for="gcal-client-id">OAuth 2.0 Client ID (Recommended)</label>
+      <input class="input" id="gcal-client-id" placeholder="e.g. 123456789-xxxx.apps.googleusercontent.com" value="${esc(g.clientId || '')}">
+      <span class="hint">Obtain this from Google Cloud Console → APIs & Services → Credentials.</span>
+    </div>
+
+    <div class="field">
+      <label class="label" for="gcal-api-key">Google Calendar API Key (Alternative)</label>
+      <input class="input" id="gcal-api-key" placeholder="AIzaSy..." value="${esc(g.apiKey || '')}">
+      <span class="hint">Used if accessing public or shared calendar IDs directly without user OAuth consent.</span>
+    </div>
+
+    <div class="field">
+      <label class="label" for="gcal-cal-id">Calendar ID</label>
+      <input class="input" id="gcal-cal-id" value="${esc(g.calendarId || 'primary')}" placeholder="primary">
+      <span class="hint">Use "primary" for your default account calendar, or a specific calendar address.</span>
+    </div>
+
+    <div class="alert info">
+      ${ic('info', 14)}
+      <span><b>Setup Instructions:</b> In Google Cloud Console, enable the <i>Google Calendar API</i> and add <code>${window.location.origin}</code> to Authorised JavaScript Origins.</span>
+    </div>
+  </form>
+  <div class="modal-f">
+    ${g.connected ? `<button class="btn btn-danger-ghost" data-a="disconnectGcal">${ic('unlink', 13)}Disconnect</button>` : ''}
+    <span class="sp"></span>
+    <button class="btn btn-secondary" data-a="closeModal">Cancel</button>
+    <button class="btn btn-primary" data-a="saveGcalConfig">${ic('refresh-cw', 13)}Save & Connect</button>
+  </div>`;
+}
+
+export function contactModal(m, H) {
+  const f = S.ui.cform || { name: '', company: '', title: '', email: '', phone: '', location: '', tags: '', notes: '' };
+  const isEdit = !!m.edit;
+  return `${H(isEdit ? 'Edit Contact' : 'New Contact', 'Create a person profile to manage meetings, notes, and follow-ups.')}
+  <form class="modal-b" data-submit="submitContact" style="gap:12px">
+    <div class="row" style="gap:12px">
+      <div class="field grow">
+        <label class="label" for="c-name">Full name *</label>
+        <input class="input" id="c-name" value="${esc(f.name)}" placeholder="e.g. Jessica Miller" autofocus required>
+      </div>
+      <div class="field grow">
+        <label class="label" for="c-company">Company</label>
+        <input class="input" id="c-company" value="${esc(f.company || '')}" placeholder="e.g. Acme Corp">
+      </div>
+    </div>
+
+    <div class="row" style="gap:12px">
+      <div class="field grow">
+        <label class="label" for="c-title">Job title</label>
+        <input class="input" id="c-title" value="${esc(f.title || '')}" placeholder="e.g. VP of Product">
+      </div>
+      <div class="field grow">
+        <label class="label" for="c-loc">Location</label>
+        <input class="input" id="c-loc" value="${esc(f.location || '')}" placeholder="e.g. San Francisco, CA">
+      </div>
+    </div>
+
+    <div class="row" style="gap:12px">
+      <div class="field grow">
+        <label class="label" for="c-email">Email</label>
+        <input class="input" id="c-email" type="email" value="${esc(f.email || '')}" placeholder="name@company.com">
+      </div>
+      <div class="field grow">
+        <label class="label" for="c-phone">Phone number</label>
+        <input class="input" id="c-phone" value="${esc(f.phone || '')}" placeholder="+1 (555) 000-0000">
+      </div>
+    </div>
+
+    <div class="field">
+      <label class="label" for="c-tags">Tags (comma separated)</label>
+      <input class="input" id="c-tags" value="${esc(f.tags || '')}" placeholder="client, investor, partner, lead">
+    </div>
+
+    <div class="field">
+      <label class="label" for="c-notes">Private notes</label>
+      <textarea class="textarea" id="c-notes" rows="3" placeholder="Context, history, key interests, or mutual connections...">${esc(f.notes || '')}</textarea>
+    </div>
+  </form>
+  <div class="modal-f">
+    <button class="btn btn-secondary" data-a="closeModal">Cancel</button>
+    <button class="btn btn-primary" data-a="submitContact">${isEdit ? 'Save Changes' : 'Create Contact'}</button>
+  </div>`;
+}
+
+export function meetingModal(m, H) {
+  const contacts = D().contacts || [];
+  const preSelectedCid = m.contactId || '';
+  return `${H('Log / Schedule Meeting', 'Record meeting notes and attach action items to a contact profile.')}
+  <form class="modal-b" data-submit="submitMeeting" style="gap:12px">
+    <div class="field">
+      <label class="label" for="m-title">Meeting title *</label>
+      <input class="input" id="m-title" placeholder="e.g. Intro discovery call, Q4 partnership check-in" autofocus required>
+    </div>
+
+    <div class="row" style="gap:12px">
+      <div class="field grow">
+        <label class="label" for="m-contact">Associated contact *</label>
+        <select class="select" id="m-contact" required>
+          ${contacts.length ? contacts.map(c => `<option value="${c.id}" ${c.id === preSelectedCid ? 'selected' : ''}>${esc(c.name)}${c.company ? ` (${esc(c.company)})` : ''}</option>`).join('') : '<option value="">No contacts available</option>'}
+        </select>
+      </div>
+      <div class="field grow">
+        <label class="label" for="m-date">Date</label>
+        <input type="date" class="input" id="m-date" value="${new Date().toISOString().slice(0, 10)}">
+      </div>
+      <div class="field" style="width:110px">
+        <label class="label" for="m-time">Time</label>
+        <input type="time" class="input" id="m-time" value="10:00">
+      </div>
+    </div>
+
+    <div class="field">
+      <label class="label" for="m-notes">Meeting discussion & notes</label>
+      <textarea class="textarea" id="m-notes" rows="3" placeholder="Key takeaways, decisions made, client feedback..."></textarea>
+    </div>
+
+    <div class="field">
+      <label class="label" for="m-fu">Create follow-up task (Optional)</label>
+      <input class="input" id="m-fu" placeholder="e.g. Send revised contract draft by Friday">
+    </div>
+  </form>
+  <div class="modal-f">
+    <button class="btn btn-secondary" data-a="closeModal">Cancel</button>
+    <button class="btn btn-primary" data-a="submitMeeting">Save Meeting</button>
+  </div>`;
+}
+
+export function newMeetingModal(m, H) {
+  const cal = calcomState();
+  const contacts = D().contacts || [];
+  return `${H('Schedule New Meeting', 'Create a booking and automatically link/sync the attendee with People CRM.')}
+  <form class="modal-b" data-submit="submitNewMeeting" style="gap:12px">
+    <div class="field">
+      <label class="label" for="nm-title">Meeting title *</label>
+      <input class="input" id="nm-title" placeholder="e.g. 30 Min Strategy Call" value="30 Min Strategy Call" required autofocus>
+    </div>
+
+    <div class="row" style="gap:12px">
+      <div class="field grow">
+        <label class="label" for="nm-name">Attendee Name *</label>
+        <input class="input" id="nm-name" placeholder="e.g. Sarah Connor" required>
+      </div>
+      <div class="field grow">
+        <label class="label" for="nm-email">Attendee Email *</label>
+        <input class="input" id="nm-email" type="email" placeholder="sarah@example.com" required>
+      </div>
+    </div>
+
+    <div class="row" style="gap:12px">
+      <div class="field grow">
+        <label class="label" for="nm-company">Company</label>
+        <input class="input" id="nm-company" placeholder="e.g. Cyberdyne Systems">
+      </div>
+      <div class="field grow">
+        <label class="label" for="nm-title-role">Job Title</label>
+        <input class="input" id="nm-title-role" placeholder="e.g. Founder & CEO">
+      </div>
+    </div>
+
+    <div class="row" style="gap:12px">
+      <div class="field grow">
+        <label class="label" for="nm-date">Date *</label>
+        <input type="date" class="input" id="nm-date" value="${new Date(Date.now() + 86400000).toISOString().slice(0, 10)}" required>
+      </div>
+      <div class="field" style="width:110px">
+        <label class="label" for="nm-time">Time *</label>
+        <input type="time" class="input" id="nm-time" value="14:00" required>
+      </div>
+      <div class="field" style="width:110px">
+        <label class="label" for="nm-dur">Duration</label>
+        <select class="select" id="nm-dur">
+          <option value="15">15 min</option>
+          <option value="30" selected>30 min</option>
+          <option value="45">45 min</option>
+          <option value="60">60 min</option>
+        </select>
+      </div>
+    </div>
+
+    <div class="row" style="gap:12px">
+      <div class="field grow">
+        <label class="label" for="nm-loc">Location / Video Service</label>
+        <input class="input" id="nm-loc" value="Google Meet" placeholder="Google Meet, Cal Video, Zoom, Phone">
+      </div>
+      <div class="field grow">
+        <label class="label" for="nm-url">Video Call URL</label>
+        <input class="input" id="nm-url" placeholder="https://meet.google.com/..." value="https://meet.google.com/${Math.random().toString(36).substring(2, 6)}-${Math.random().toString(36).substring(2, 6)}">
+      </div>
+    </div>
+
+    <div class="field">
+      <label class="label" for="nm-guests">Additional Guests (comma-separated emails)</label>
+      <input class="input" id="nm-guests" placeholder="investor@fund.com, cofounder@startup.com">
+    </div>
+
+    <div class="field">
+      <label class="label" for="nm-notes">Meeting Agenda / Notes</label>
+      <textarea class="textarea" id="nm-notes" rows="2" placeholder="Discussion topics, links to decks, goals for this call..."></textarea>
+    </div>
+  </form>
+  <div class="modal-f">
+    <button class="btn btn-secondary" data-a="closeModal">Cancel</button>
+    <button class="btn btn-primary" data-a="submitNewMeeting">Schedule Booking</button>
+  </div>`;
+}
+
+export function rescheduleMeetingModal(m, H) {
+  const mtg = meeting(m.id);
+  if (!mtg) return '';
+  return `${H('Reschedule Booking', `Change the scheduled date or time for ${esc(mtg.personName || 'attendee')}.`)}
+  <form class="modal-b" data-submit="submitReschedule" style="gap:12px">
+    <input type="hidden" id="rs-id" value="${mtg.id}">
+    <div class="panel" style="padding:10px 14px;background:var(--surface)">
+      <b style="font-size:13.5px">${esc(mtg.title)}</b>
+      <div class="faint" style="font-size:12px;margin-top:2px">Currently set for: <b>${fmtDate(mtg.date, true)} at ${mtg.time}</b></div>
+    </div>
+
+    <div class="row" style="gap:12px">
+      <div class="field grow">
+        <label class="label" for="rs-date">New Date *</label>
+        <input type="date" class="input" id="rs-date" value="${mtg.date}" required autofocus>
+      </div>
+      <div class="field" style="width:130px">
+        <label class="label" for="rs-time">New Time *</label>
+        <input type="time" class="input" id="rs-time" value="${mtg.time}" required>
+      </div>
+    </div>
+
+    <div class="field">
+      <label class="label" for="rs-reason">Reschedule note / message to attendee</label>
+      <textarea class="textarea" id="rs-reason" rows="2" placeholder="e.g. Due to an urgent conflict, proposing we move our discussion 2 hours later."></textarea>
+    </div>
+  </form>
+  <div class="modal-f">
+    <button class="btn btn-secondary" data-a="closeModal">Cancel</button>
+    <button class="btn btn-primary" data-a="submitReschedule">Confirm Reschedule</button>
+  </div>`;
+}
+
+export function editMeetingModal(m, H) {
+  const mtg = meeting(m.id);
+  if (!mtg) return '';
+  return `${H('Edit Meeting Details', `Modify location, video link, guests, or notes for “${esc(mtg.title)}”.`)}
+  <form class="modal-b" data-submit="submitEditMeeting" style="gap:12px">
+    <input type="hidden" id="em-id" value="${mtg.id}">
+
+    <div class="field">
+      <label class="label" for="em-title">Meeting title *</label>
+      <input class="input" id="em-title" value="${esc(mtg.title)}" required autofocus>
+    </div>
+
+    <div class="row" style="gap:12px">
+      <div class="field grow">
+        <label class="label" for="em-loc">Location</label>
+        <input class="input" id="em-loc" value="${esc(mtg.location || '')}" placeholder="Google Meet, Zoom, Phone">
+      </div>
+      <div class="field grow">
+        <label class="label" for="em-url">Video link</label>
+        <input class="input" id="em-url" value="${esc(mtg.meetUrl || '')}" placeholder="https://...">
+      </div>
+    </div>
+
+    <div class="field">
+      <label class="label" for="em-guests">Guests (comma-separated)</label>
+      <input class="input" id="em-guests" value="${esc((mtg.guests || []).join(', '))}" placeholder="colleague@example.com, manager@example.com">
+    </div>
+
+    <div class="field">
+      <label class="label" for="em-notes">Meeting Notes</label>
+      <textarea class="textarea" id="em-notes" rows="3">${esc(mtg.notes || '')}</textarea>
+    </div>
+  </form>
+  <div class="modal-f">
+    <button class="btn btn-secondary" data-a="closeModal">Cancel</button>
+    <button class="btn btn-primary" data-a="submitEditMeeting">Save Changes</button>
+  </div>`;
+}
+
+export function calcomSettingsModal(H) {
+  const cal = calcomState();
+  return `${H('Cal.com Integration Settings', 'Configure your Cal.com API key, username, and event types for zero-click bookings.')}
+  <form class="modal-b" data-submit="saveCalcomSettings" style="gap:14px">
+    <div class="field">
+      <label class="label" for="cal-username">Cal.com Username</label>
+      <div class="row" style="gap:0">
+        <span class="input" style="width:auto;background:var(--surface-2);border-right:0;border-radius:6px 0 0 6px;color:var(--text-3);display:flex;align-items:center">cal.com/</span>
+        <input class="input" id="cal-username" value="${esc(cal.username || 'phato')}" style="border-radius:0 6px 6px 0">
+      </div>
+    </div>
+
+    <div class="field">
+      <label class="label" for="cal-key">Cal.com API Key (Optional for live API sync)</label>
+      <input class="input" id="cal-key" type="password" value="${esc(cal.apiKey || '')}" placeholder="cal_live_...">
+      <span class="hint">Generate an API key in Cal.com → Settings → Developer → API Keys.</span>
+    </div>
+
+    <div class="sblock" style="margin-top:10px">
+      <h2>Active Call Event Types</h2>
+      ${(cal.eventTypes || [])
+        .map(
+          (et, i) => `<div class="srow" style="padding:8px 0">
+            <div>
+              <b style="font-size:13px">${esc(et.title)}</b>
+              <div class="faint" style="font-size:11.5px">cal.com/${esc(cal.username || 'phato')}/${esc(et.slug)} · ${et.length} minutes</div>
+            </div>
+            <label class="toggle-wrap">
+              <input type="checkbox" class="toggle" id="et-toggle-${i}" ${et.active !== false ? 'checked' : ''}>
+            </label>
+          </div>`,
+        )
+        .join('')}
+    </div>
+  </form>
+  <div class="modal-f">
+    <span class="sp"></span>
+    <button class="btn btn-secondary" data-a="closeModal">Cancel</button>
+    <button class="btn btn-primary" data-a="saveCalcomSettings">Save Settings</button>
+  </div>`;
+}
+
+export function calcomAvailabilityModal(H) {
+  const cal = calcomState();
+  const av = cal.availability || { days: ['Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday'], startTime: '09:00', endTime: '18:00', timeZone: 'Asia/Kolkata' };
+  const allDays = ['Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday', 'Sunday'];
+
+  return `${H('Edit Weekly Availability', 'Set your working hours and active booking days for Cal.com calls.')}
+  <form class="modal-b" data-submit="saveAvailability" style="gap:14px">
+    <div class="row" style="gap:12px">
+      <div class="field grow">
+        <label class="label" for="av-start">Start Time</label>
+        <input type="time" class="input" id="av-start" value="${av.startTime || '09:00'}">
+      </div>
+      <div class="field grow">
+        <label class="label" for="av-end">End Time</label>
+        <input type="time" class="input" id="av-end" value="${av.endTime || '18:00'}">
+      </div>
+    </div>
+
+    <div class="field">
+      <label class="label">Available Days</label>
+      <div style="display:grid;grid-template-columns:repeat(auto-fill, minmax(110px, 1fr));gap:8px">
+        ${allDays
+          .map(
+            d => `<label class="panel row" style="padding:8px 10px;cursor:pointer;gap:8px;font-size:13px">
+              <input type="checkbox" class="check" data-av-day="${d}" ${av.days.includes(d) ? 'checked' : ''}>
+              <span>${d.slice(0, 3)}</span>
+            </label>`,
+          )
+          .join('')}
+      </div>
+    </div>
+  </form>
+  <div class="modal-f">
+    <span class="sp"></span>
+    <button class="btn btn-secondary" data-a="closeModal">Cancel</button>
+    <button class="btn btn-primary" data-a="saveAvailability">Update Availability</button>
+  </div>`;
+}
+

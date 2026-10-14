@@ -26,7 +26,9 @@ export function pageMembers() {
       .join('')}</div>
     ${
       tab === 'teams'
-        ? `<div class="row" style="margin-bottom:12px"><span class="muted" style="font-size:13px">${teamsList().length} teams</span><span class="sp"></span><button class="btn btn-secondary btn-sm" data-a="newTeam">${ic('plus', 13)}New team</button></div>${teamsGrid()}`
+        ? teamsList().length
+          ? `<div class="row" style="margin-bottom:12px"><span class="muted" style="font-size:13px">${teamsList().length} teams</span><span class="sp"></span><button class="btn btn-secondary btn-sm" data-a="newTeam">${ic('plus', 13)}New team</button></div>${teamsGrid()}`
+          : `<div class="panel">${empty('users', 'No teams yet', 'Create a team to group people and give projects an owner.', `<button class="btn btn-primary btn-sm" data-a="newTeam">${ic('plus', 14)}New team</button>`)}</div>`
         : tab === 'roles'
           ? permsTable()
           : `

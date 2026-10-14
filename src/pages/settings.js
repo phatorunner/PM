@@ -3,8 +3,8 @@
    ===================================================================== */
 import { dOff, esc, fmtDate } from '../core/utils.js';
 import { ic, wsLogo } from '../core/icons.js';
-import { D, S, me } from '../core/store.js';
-import { av, pIcon } from '../ui/helpers.js';
+import { D, S, SIDEBAR_PAGES, me, teamsList } from '../core/store.js';
+import { av, empty, pIcon } from '../ui/helpers.js';
 import { permsTable, teamsGrid } from './members.js';
 import { page404 } from './errors.js';
 import { SHORTCUTS } from '../overlays/modals.js';
@@ -15,6 +15,7 @@ export const SET_NAV = [
     [
       ['workspace', 'Workspace', 'building-2'],
       ['appearance', 'Appearance', 'palette'],
+      ['sidebar', 'Sidebar', 'panel-left'],
       ['language', 'Language', 'languages'],
       ['datetime', 'Date & time', 'clock'],
     ],
@@ -104,16 +105,21 @@ export function settingsBody(sec, title) {
         H('Customize how Gr8r looks on this device.') +
         `
       <div class="sblock" style="margin-top:0"><h2>Theme</h2><div class="themecards" style="margin-top:12px" role="radiogroup" aria-label="Theme">${[
+        ['dark', 'Dark (Default)'],
+        ['revelation', 'Revelation'],
+        ['phato', 'Phato'],
         ['light', 'Light'],
-        ['dark', 'Dark'],
         ['system', 'System'],
       ]
         .map(([k, n]) => {
           const L = { bg: '#FBFAF8', s: '#F2F1EE', t: '#1D1C1A', b: '#E3E1DC', a: '#4B5BD6' },
-            Dk = { bg: '#1D1D1C', s: '#151514', t: '#ECEAE5', b: '#333230', a: '#8E9AF3' };
+            Dk = { bg: '#050505', s: '#0A0A0B', t: '#F0F0F3', b: '#1A1A1D', a: '#8E9AF3' },
+            Ph = { bg: '#000000', s: '#080808', t: '#F2F2F2', b: '#1C1C1C', a: '#8E9AF3' },
+            Rev = { bg: '#191919', s: '#111111', t: '#F3F3F4', b: '#292929', a: '#8E9AF3' };
           const pv = c =>
             `<div class="s" style="background:${c.s}"><i style="background:${c.b};width:70%"></i><i style="background:${c.a};width:55%"></i><i style="background:${c.b};width:80%"></i><i style="background:${c.b};width:60%"></i></div><div class="m" style="background:${c.bg}"><i style="background:${c.t};width:45%;height:7px"></i><i style="background:${c.b}"></i><i style="background:${c.b};width:80%"></i><i style="background:${c.a};width:30%;height:10px;margin-top:4px"></i></div>`;
-          return `<button class="tcard ${P.theme === k ? 'on' : ''}" role="radio" aria-checked="${P.theme === k}" data-a="setTheme" data-v="${k}"><div class="tprev" style="${k === 'system' ? 'grid-template-columns:1fr 1fr;display:grid' : ''}">${k === 'system' ? `<div style="display:grid;grid-template-columns:30% 1fr">${pv(L)}</div><div style="display:grid;grid-template-columns:30% 1fr">${pv(Dk)}</div>` : pv(k === 'light' ? L : Dk)}</div><span class="row" style="font-weight:500;font-size:13px;gap:6px">${ic(k === 'light' ? 'sun' : k === 'dark' ? 'moon' : 'monitor', 14)}${n}${P.theme === k ? `<span class="sp"></span><span style="color:var(--accent)">${ic('circle-check', 15)}</span>` : ''}</span></button>`;
+          const getPv = key => (key === 'light' ? L : key === 'phato' ? Ph : key === 'revelation' ? Rev : Dk);
+          return `<button class="tcard ${P.theme === k ? 'on' : ''}" role="radio" aria-checked="${P.theme === k}" data-a="setTheme" data-v="${k}"><div class="tprev" style="${k === 'system' ? 'grid-template-columns:1fr 1fr;display:grid' : ''}">${k === 'system' ? `<div style="display:grid;grid-template-columns:30% 1fr">${pv(L)}</div><div style="display:grid;grid-template-columns:30% 1fr">${pv(Dk)}</div>` : pv(getPv(k))}</div><span class="row" style="font-weight:500;font-size:13px;gap:6px">${ic(k === 'light' ? 'sun' : k === 'phato' ? 'sparkles' : k === 'revelation' ? 'layers' : k === 'dark' ? 'moon' : 'monitor', 14)}${n}${P.theme === k ? `<span class="sp"></span><span style="color:var(--accent)">${ic('circle-check', 15)}</span>` : ''}</span></button>`;
         })
         .join('')}</div></div>
       <div class="sblock"><h2>Accent color</h2>${srow(
@@ -150,6 +156,38 @@ export function settingsBody(sec, title) {
         )}
       </div>`
       );
+    case 'sidebar': {
+      const hid = P.sidebarHidden || {};
+      return (
+        H('Choose which pages appear in your sidebar navigation.') +
+        `<div class="row" style="margin-bottom:14px;gap:8px">
+          <button class="btn btn-secondary btn-sm" data-a="showAllSidebarPages">${ic('eye', 14)}Show all pages</button>
+          <button class="btn btn-secondary btn-sm" data-a="resetSidebarPages">${ic('rotate-ccw', 14)}Reset to default</button>
+        </div>` +
+        SIDEBAR_PAGES.map(g => {
+          const rows = g.items
+            .map(item => {
+              const isHidden = !!hid[item.id];
+              return `<div class="srow">
+                <div class="row" style="gap:10px">
+                  <span style="color:var(--text-2);display:inline-flex;align-items:center">${ic(item.icon, 16)}</span>
+                  <div>
+                    <div class="t" style="font-weight:500">${esc(item.name)}</div>
+                    <div class="d">${isHidden ? 'Hidden from sidebar' : 'Visible in sidebar'}</div>
+                  </div>
+                </div>
+                <div class="row">
+                  <label class="toggle-wrap" style="display:inline-flex;align-items:center;cursor:pointer">
+                    <input type="checkbox" class="toggle" data-a="toggleSidebarPage" data-page="${item.id}" ${!isHidden ? 'checked' : ''} aria-label="Show ${esc(item.name)}">
+                  </label>
+                </div>
+              </div>`;
+            })
+            .join('');
+          return `<div class="sblock"><h2>${esc(g.group)}</h2>${rows}</div>`;
+        }).join('')
+      );
+    }
     case 'language':
       return (
         H('Language and regional formats.') +
@@ -215,7 +253,7 @@ export function settingsBody(sec, title) {
       <div class="panel" style="overflow:hidden">${d.members.map(m => `<div class="mini" style="min-height:52px;cursor:default" data-ctx="member" data-id="${m.id}">${av(m.id, 'md', false)}<div class="grow"><div style="font-weight:500">${esc(m.name)}</div><div class="faint" style="font-size:12px">${esc(m.email)}</div></div>${m.status === 'invited' ? '<span class="badge amber">Invited</span>' : ''}${m.role === 'Owner' ? `<span class="pillbtn">${ic('crown', 13)}Owner</span>` : `<button class="pillbtn bordered" data-a="pop" data-pop="role" data-id="${m.id}">${m.role}${ic('chevron-down', 12)}</button>`}<button class="ibtn ibtn-sm" data-a="ctxBtn" data-ctx="member" data-id="${m.id}" aria-label="Options">${ic('ellipsis', 14)}</button></div>`).join('')}</div>`
       );
     case 'teams':
-      return H('Teams group people and projects.') + teamsGrid();
+      return H('Teams group people and projects.') + (teamsList().length ? teamsGrid() : `<div class="panel">${empty('users', 'No teams yet', 'Create a team to group people and give projects an owner.', `<button class="btn btn-primary btn-sm" data-a="newTeam">${ic('plus', 14)}New team</button>`)}</div>`);
     case 'projects': {
       const arch = d.projects.filter(p => p.archived);
       return (

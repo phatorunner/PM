@@ -70,9 +70,12 @@ import { ROUTE_NAMES, render, go } from './shell/render.js';
   const h = (location.hash || '').slice(1);
   const authRoutes = ['login', 'signup', 'forgot', 'reset', 'verify', 'onboarding'];
   if (authRoutes.includes(h)) S.ui.auth = h;
-  else if (h && ROUTE_NAMES[h]) S.ui.route = h;
-  else S.ui.route = S.prefs.home || 'home';
-  render();
+  else if (h && ROUTE_NAMES[h]) go(h);
+  else {
+    const activeTab = S.ui.browserTabs?.find(t => t.id === S.ui.activeTabId);
+    if (activeTab) go(activeTab.route, activeTab.params);
+    else go(S.prefs.home || 'home');
+  }
 })();
 
 // Dev-only handle for debugging and screenshot tooling; stripped from production builds.

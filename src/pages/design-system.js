@@ -126,17 +126,31 @@ export function pageSystem() {
       <div class="tabs">${['Overview', 'Board', 'List', 'Table'].map((t, i) => `<button class="tab ${i === 1 ? 'on' : ''}">${t}</button>`).join('')}</div>
       <div class="row"><div class="seg"><button class="on">${ic('layout-grid', 13)}Grid</button><button>${ic('list', 13)}List</button><button>${ic('table-2', 13)}Table</button></div><span class="chip">${ic('circle-dot', 12)}<b>Status</b> is <span>In Progress</span><span class="ibtn">${ic('x', 12)}</span></span></div></div></div></div>
     <div class="ds-sec"><h2>Data display</h2><div class="grid2" style="grid-template-columns:300px 1fr">
-      <div style="background:var(--sunken);padding:10px;border-radius:var(--r-lg)">${kcard(task('t3') || allTasks()[0])}</div>
+      <div style="background:var(--sunken);padding:10px;border-radius:var(--r-lg)">${(() => {
+        const t = task('t3') || allTasks()[0] || {
+          id: 'demo-task',
+          key: 'DEMO-101',
+          title: 'Sample task preview',
+          status: 'progress',
+          priority: 'high',
+          labels: ['design'],
+          subtasks: [{ id: 's1', title: 'Component specs', done: true }],
+          attachments: [],
+          assignee: 'm1',
+          project: '',
+        };
+        return kcard(t);
+      })()}</div>
       <div class="col" style="gap:12px"><div class="ds-row"><span class="lab">Avatar</span>${['m1', 'm2', 'm3'].map(i => av(i, 'sm')).join('')}${av('m4')}${av('m5', 'md')}${av('m6', 'lg')}${av(null)}${avStack(['m1', 'm2', 'm3', 'm4', 'm5', 'm6'], 4, 'md')}</div>
       <div class="ds-row"><span class="lab">Badge</span><span class="badge">Default</span><span class="badge accent">Accent</span><span class="badge green"><span class="dot"></span>Active</span><span class="badge amber"><span class="dot"></span>Invited</span><span class="badge red">3 overdue</span>${pStatus('active')}${pStatus('risk')}</div>
       <div class="ds-row"><span class="lab">Progress</span><span style="width:200px;display:flex">${progBar(64)}</span><span style="width:120px;display:flex">${progBar(100, 'green')}</span><span style="width:120px;display:flex">${progBar(30, 'red')}</span></div>
-      <div class="panel" style="overflow:hidden">${allTasks()
+      <div class="panel" style="overflow:hidden">${allTasks().length ? allTasks()
         .slice(0, 2)
         .map(t => miniRow(t))
-        .join('')}</div></div></div></div>
+        .join('') : '<div class="faint" style="padding:14px;font-size:12.5px">No tasks to display</div>'}</div></div></div></div>
     <div class="ds-sec"><h2>Feedback</h2>
       <div class="col" style="gap:8px;margin-bottom:12px"><div class="alert info">${ic('info', 15)}<span><b>Heads up.</b> Timeline dependencies are shown as dashed when out of order.</span></div><div class="alert ok">${ic('circle-check', 15)}<span>Project archived. <button class="link">Undo</button></span></div><div class="alert warn">${ic('triangle-alert', 15)}<span>3 tasks due this week are not started.</span></div><div class="alert danger">${ic('circle-alert', 15)}<span>Your changes couldn't be saved. <button class="link">Try again</button></span></div></div>
-      <div class="ds-row"><span class="lab">Triggers</span><button class="btn btn-secondary" data-a="demoToast" data-v="ok">Toast</button><button class="btn btn-secondary" data-a="demoToast" data-v="err">Error toast</button><button class="btn btn-secondary" data-tip="Tooltips pair with icon buttons">Tooltip</button><button class="btn btn-secondary" data-a="newTask">Modal</button><button class="btn btn-secondary" data-a="openTask" data-id="t3">Drawer</button><button class="btn btn-secondary" data-a="demoConfirm">Confirmation</button><button class="btn btn-secondary" data-a="openPalette">Command menu</button></div></div>
+      <div class="ds-row"><span class="lab">Triggers</span><button class="btn btn-secondary" data-a="demoToast" data-v="ok">Toast</button><button class="btn btn-secondary" data-a="demoToast" data-v="err">Error toast</button><button class="btn btn-secondary" data-tip="Tooltips pair with icon buttons">Tooltip</button><button class="btn btn-secondary" data-a="newTask">Modal</button><button class="btn btn-secondary" data-a="demoConfirm">Confirmation</button><button class="btn btn-secondary" data-a="openPalette">Command menu</button></div></div>
     <div class="ds-sec"><h2>Iconography <span>Lucide · 1.8px stroke · 12–18px</span></h2><div class="panel" style="padding:14px;display:grid;grid-template-columns:repeat(auto-fill,minmax(40px,1fr));gap:6px;color:var(--text-2)">${['house', 'inbox', 'circle-check', 'star', 'search', 'bell', 'folder-kanban', 'list-checks', 'calendar', 'chart-gantt', 'users', 'activity', 'settings', 'plus', 'list-filter', 'arrow-up-down', 'rows-3', 'share-2', 'ellipsis', 'paperclip', 'message-square', 'tag', 'link', 'copy', 'pencil', 'trash-2', 'archive', 'upload', 'repeat', 'timer', 'git-branch', 'lock', 'eye', 'at-sign', 'sun', 'moon'].map(i => `<span style="height:36px;display:grid;place-items:center" title="${i}">${ic(i, 17)}</span>`).join('')}</div></div>
   </div>`;
 }

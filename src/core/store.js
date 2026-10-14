@@ -3,9 +3,30 @@ import { TODAY, diffD, iso, parse, uid } from './utils.js';
 import { PCOLORS, TEAMS_SEED } from './constants.js';
 import { seed } from '../data/seed.js';
 
-export const STORE_KEY = 'gr8r.v2';
+export const STORE_KEY = 'gr8r.v5';
+export const SIDEBAR_PAGES = [
+  { group: 'Overview', items: [
+    { id: 'home', name: 'Home', icon: 'house' },
+    { id: 'inbox', name: 'Inbox', icon: 'inbox' },
+    { id: 'mytasks', name: 'My Tasks', icon: 'circle-check' },
+    { id: 'meetings', name: 'Meetings', icon: 'video' },
+    { id: 'agenda', name: 'Agenda', icon: 'calendar-days' },
+    { id: 'people', name: 'People', icon: 'contact' },
+    { id: 'favorites', name: 'Favorites', icon: 'star' },
+    { id: 'notifications', name: 'Notifications', icon: 'bell' },
+  ]},
+  { group: 'Workspace', items: [
+    { id: 'overview', name: 'Overview', icon: 'layout-dashboard' },
+    { id: 'projects', name: 'Projects', icon: 'folder-kanban' },
+    { id: 'tasks', name: 'Tasks', icon: 'list-checks' },
+    { id: 'calendar', name: 'Calendar', icon: 'calendar' },
+    { id: 'timeline', name: 'Timeline', icon: 'chart-gantt' },
+    { id: 'members', name: 'Members', icon: 'users' },
+    { id: 'activity', name: 'Activity', icon: 'activity' },
+  ]},
+];
 export const DEFAULT_PREFS = {
-  theme: 'system',
+  theme: 'revelation',
   accent: 'indigo',
   side: 'comfortable',
   density: 'comfortable',
@@ -16,8 +37,9 @@ export const DEFAULT_PREFS = {
   motion: 'system',
   home: 'home',
   openTasks: 'drawer',
-  name: 'Tanjim Islam',
-  title: 'Head of Product',
+  name: 'Phato',
+  title: 'Workspace Owner',
+  sidebarHidden: {},
 };
 export function load() {
   try {
@@ -32,6 +54,35 @@ export function load() {
   return null;
 }
 export const saved = load();
+if (saved?.prefs?.name === 'Tanjim Islam') saved.prefs.name = 'Phato';
+if (saved?.data?.members) {
+  saved.data.members.forEach(m => {
+    if (m.name === 'Tanjim Islam') m.name = 'Phato';
+  });
+}
+if (saved?.data?.ws?.name === 'Gr8r Studio' || !saved?.data?.ws?.name) {
+  if (saved?.data?.ws) {
+    saved.data.ws.name = 'Revelation Fintech';
+    saved.data.ws.url = 'revelation-fintech';
+  }
+}
+if (saved?.data?.workspaces) {
+  saved.data.workspaces.forEach(w => {
+    if (w.name === 'Gr8r Studio') w.name = 'Revelation Fintech';
+  });
+}
+if (saved?.data) {
+  // Clear any residual mock data from previous sessions
+  saved.data.meetings = [];
+  saved.data.contacts = [];
+  saved.data.tasks = [];
+  saved.data.projects = [];
+  saved.data.comments = [];
+  saved.data.activity = [];
+  saved.data.notifs = [];
+  saved.data.events = [];
+}
+
 export const S = {
   data: saved?.data || seed(),
   prefs: Object.assign({}, DEFAULT_PREFS, saved?.prefs || {}),
@@ -42,12 +93,14 @@ export const S = {
     authStep: 'login',
     onb: 0,
     onbData: { use: 'product', team: 'kanban', size: '2-10', ws: '', proj: 'Website Launch', tmpl: 'web', invites: '' },
-    route: 'home',
-    params: {},
+    route: saved?.browserTabs?.find(t => t.id === saved?.activeTabId)?.route || 'home',
+    params: saved?.browserTabs?.find(t => t.id === saved?.activeTabId)?.params || {},
     history: [],
+    browserTabs: saved?.browserTabs && saved.browserTabs.length ? saved.browserTabs : [{ id: 'tab_home', route: 'home', params: {}, title: 'Home', icon: 'house' }],
+    activeTabId: saved?.activeTabId || 'tab_home',
     collapsed: !!saved?.collapsed,
     mnav: false,
-    expanded: { p1: true },
+    expanded: {},
     drawer: null,
     drawerFull: false,
     drawerTab: 'comments',
@@ -63,11 +116,19 @@ export const S = {
     collapsedGroups: {},
     calDate: iso(TODAY),
     calMode: 'month',
+    agendaMode: 'week',
+    agendaSource: 'all',
+    crmTab: 'all',
+    crmQ: '',
+    crmFilterCo: 'all',
     tlZoom: 'week',
     tlGroup: 'status',
     fileView: 'grid',
     projView: 'grid',
     homeTab: 'upcoming',
+    homeMeetingsTab: 'upcoming',
+    meetingsTab: 'upcoming',
+    meetingsQ: '',
     inboxCat: 'all',
     inboxUnread: false,
     inboxSel: null,
@@ -87,7 +148,14 @@ export function save() {
   clearTimeout(_saveT);
   _saveT = setTimeout(() => {
     try {
-      localStorage.setItem(STORE_KEY, JSON.stringify({ data: S.data, prefs: S.prefs, views: S.views, collapsed: S.ui.collapsed }));
+      localStorage.setItem(STORE_KEY, JSON.stringify({
+        data: S.data,
+        prefs: S.prefs,
+        views: S.views,
+        collapsed: S.ui.collapsed,
+        browserTabs: S.ui.browserTabs,
+        activeTabId: S.ui.activeTabId,
+      }));
     } catch {
       /* storage full or blocked: keep working in memory */
     }
@@ -139,3 +207,62 @@ export function team(id) {
   return teamsList().find(t => t.id === id) || null;
 }
 export const TM = new Proxy({}, { get: (_, k) => team(k) || NO_TEAM });
+
+/* ---------- personal (agenda & people crm) ---------- */
+export function contactsList() {
+  const d = D();
+  if (!d.contacts) d.contacts = [];
+  return d.contacts;
+}
+export function contact(id) {
+  return contactsList().find(c => c.id === id) || null;
+}
+export function meetingsList() {
+  const d = D();
+  if (!d.meetings) d.meetings = [];
+  return d.meetings;
+}
+export function meeting(id) {
+  return meetingsList().find(m => m.id === id) || null;
+}
+export function calcomState() {
+  const d = D();
+  if (!d.calcom) {
+    d.calcom = {
+      username: 'phato',
+      apiKey: '',
+      connected: false,
+      eventTypes: [
+        { id: '15min', title: '15 Min Quick Chat', slug: '15min', length: 15, active: true },
+        { id: '30min', title: '30 Min Strategy Call', slug: '30min', length: 30, active: true },
+        { id: '60min', title: '60 Min Deep Dive', slug: '60min', length: 60, active: true },
+      ],
+      availability: {
+        timeZone: 'Asia/Kolkata',
+        days: ['Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday'],
+        startTime: '09:00',
+        endTime: '18:00',
+      },
+    };
+  }
+  return d.calcom;
+}
+export const GOOGLE_CLIENT_ID = '571607149519-2b1mv8q6c477g372oncoa7f0hspcgrm9.apps.googleusercontent.com';
+
+export function gcalState() {
+  const d = D();
+  if (!d.gcal) {
+    d.gcal = {
+      connected: false,
+      clientId: GOOGLE_CLIENT_ID,
+      apiKey: '',
+      calendarId: 'primary',
+      lastSynced: null,
+      events: [],
+      error: null,
+    };
+  } else if (!d.gcal.clientId) {
+    d.gcal.clientId = GOOGLE_CLIENT_ID;
+  }
+  return d.gcal;
+}

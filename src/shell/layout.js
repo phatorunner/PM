@@ -24,6 +24,9 @@ import { pageWsTimeline } from '../views/timeline.js';
 import { pageSettings } from '../pages/settings.js';
 import { pageStates, pageSystem } from '../pages/design-system.js';
 import { pageArchive } from '../features/archive.js';
+import { pageAgenda } from '../pages/agenda.js';
+import { pagePeople } from '../pages/people.js';
+import { pageMeetings } from '../pages/meetings.js';
 
 export function renderShell() {
   const u = S.ui;
@@ -43,6 +46,9 @@ export function renderPage() {
   try {
     const P = {
       home: pageHome,
+      agenda: pageAgenda,
+      people: pagePeople,
+      meetings: pageMeetings,
       inbox: pageInbox,
       mytasks: pageMyTasks,
       favorites: pageFavorites,
@@ -83,6 +89,7 @@ export function renderSidebar() {
   const myOpen = allTasks().filter(t => t.assignee === d.me && t.status !== 'done' && t.due && diffD(parse(t.due), TODAY) <= 0).length;
   const projs = visibleProjects().filter(p => p.status !== 'complete');
   const inProj = u.route === 'project' ? u.params.id : null;
+  const hid = S.prefs.sidebarHidden || {};
   return `<nav class="side" aria-label="Main">
     <div class="side-top">
       <div class="row" style="gap:2px">
@@ -96,21 +103,28 @@ export function renderSidebar() {
     </div>
     <div class="side-scroll" data-keep="side">
       ${u.collapsed ? `<button class="sitem" data-a="toggleSide" data-tip="Expand sidebar" data-tip-pos="right" aria-label="Expand sidebar">${ic('panel-left', 16)}</button>` : ''}
-      ${sItem('home', 'Home', 'house')}
-      ${sItem('inbox', 'Inbox', 'inbox', { ct: unreadInbox || '', dot: true })}
-      ${sItem('mytasks', 'My Tasks', 'circle-check', { ct: myOpen || '' })}
-      ${sItem('favorites', 'Favorites', 'star')}
-      ${sItem('notifications', 'Notifications', 'bell', { ct: unreadAll || '' })}
-      <div class="sgroup">
-        <div class="sgroup-h">Workspace</div>
-        ${sItem('overview', 'Overview', 'layout-dashboard')}
-        ${sItem('projects', 'Projects', 'folder-kanban')}
-        ${sItem('tasks', 'Tasks', 'list-checks')}
-        ${sItem('calendar', 'Calendar', 'calendar')}
-        ${sItem('timeline', 'Timeline', 'chart-gantt')}
-        ${sItem('members', 'Members', 'users')}
-        ${sItem('activity', 'Activity', 'activity')}
-      </div>
+      ${!hid.home ? sItem('home', 'Home', 'house') : ''}
+      ${!hid.inbox ? sItem('inbox', 'Inbox', 'inbox', { ct: unreadInbox || '', dot: true }) : ''}
+      ${!hid.mytasks ? sItem('mytasks', 'My Tasks', 'circle-check', { ct: myOpen || '' }) : ''}
+      ${!hid.meetings ? sItem('meetings', 'Meetings', 'video', { ct: (D().meetings || []).filter(m => m.status === 'upcoming').length || '' }) : ''}
+      ${!hid.agenda ? sItem('agenda', 'Agenda', 'calendar-days') : ''}
+      ${!hid.people ? sItem('people', 'People', 'contact') : ''}
+      ${!hid.favorites ? sItem('favorites', 'Favorites', 'star') : ''}
+      ${!hid.notifications ? sItem('notifications', 'Notifications', 'bell', { ct: unreadAll || '' }) : ''}
+      ${
+        !hid.overview || !hid.projects || !hid.tasks || !hid.calendar || !hid.timeline || !hid.members || !hid.activity
+          ? `<div class="sgroup">
+              <div class="sgroup-h">Workspace</div>
+              ${!hid.overview ? sItem('overview', 'Overview', 'layout-dashboard') : ''}
+              ${!hid.projects ? sItem('projects', 'Projects', 'folder-kanban') : ''}
+              ${!hid.tasks ? sItem('tasks', 'Tasks', 'list-checks') : ''}
+              ${!hid.calendar ? sItem('calendar', 'Calendar', 'calendar') : ''}
+              ${!hid.timeline ? sItem('timeline', 'Timeline', 'chart-gantt') : ''}
+              ${!hid.members ? sItem('members', 'Members', 'users') : ''}
+              ${!hid.activity ? sItem('activity', 'Activity', 'activity') : ''}
+            </div>`
+          : ''
+      }
       <div class="sgroup" id="side-projects">
         <div class="sgroup-h"><span>Projects</span><span class="sp"></span><button class="ibtn ibtn-xs" data-a="newProject" data-tip="New project  P" aria-label="New project">${ic('plus', 14)}</button></div>
         ${projs
@@ -187,11 +201,29 @@ export function crumbs() {
   } else out.push(c(ROUTE_NAMES[r] || 'Not found', '', true));
   return out.join('<span class="sep">/</span>');
 }
+export function renderBrowserTabs() {
+  const tabs = S.ui.browserTabs || [{ id: 'tab_home', route: 'home', params: {}, title: 'Home', icon: 'house' }];
+  const activeId = S.ui.activeTabId || tabs[0]?.id;
+  return `<div class="top-tabs" role="tablist" aria-label="Open pages">
+    ${tabs
+      .map(t => {
+        const active = t.id === activeId;
+        return `<div class="top-tab ${active ? 'active' : ''}" role="tab" aria-selected="${active}" data-a="switchTab" data-id="${t.id}" title="${esc(t.title)}">
+          <span class="top-tab-icon">${ic(t.icon || 'file-text', 13)}</span>
+          <span class="top-tab-title trunc">${esc(t.title)}</span>
+          ${tabs.length > 1 ? `<button class="top-tab-close" data-a="closeTab" data-id="${t.id}" title="Close tab" aria-label="Close ${esc(t.title)} tab">${ic('x', 12)}</button>` : ''}
+        </div>`;
+      })
+      .join('')}
+    <button class="top-tab-add" data-a="addTab" title="New tab" aria-label="Open new tab">${ic('plus', 14)}</button>
+  </div>`;
+}
+
 export function renderTopbar() {
   return `<header class="topbar">
     <button class="ibtn" data-a="openMnav" aria-label="Open navigation" style="display:none" id="mnav-btn">${ic('menu', 17)}</button>
     <style>@media(max-width:900px){#mnav-btn{display:inline-flex!important}}</style>
-    <nav class="crumbs trunc" aria-label="Breadcrumb">${crumbs()}</nav>
+    ${renderBrowserTabs()}
     <span class="sp"></span>
     <button class="topsearch" data-a="openPalette" aria-label="Search and commands">${ic('search', 14)}<span class="lbltxt">Search or jump to…</span><span class="kbd">${MOD}K</span></button>
     <button class="ibtn" data-a="go" data-r="notifications" data-tip="Notifications" aria-label="Notifications">${ic('bell', 16)}${D().notifs.some(n => !n.read) ? '<span style="position:absolute;top:6px;right:7px;width:7px;height:7px;border-radius:50%;background:var(--accent);box-shadow:0 0 0 2px var(--surface)"></span>' : ''}</button>

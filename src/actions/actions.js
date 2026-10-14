@@ -4,7 +4,7 @@
 import { $, $$, TODAY, addD, dOff, esc, fmtDate, iso, parse, uid } from '../core/utils.js';
 import { PR, PSTAT, ST } from '../core/constants.js';
 import { seed } from '../data/seed.js';
-import { D, DEFAULT_PREFS, S, allTasks, canSee, commentsOf, logAct, me, mem, proj, save, task, tasksOf, visibleProjects } from '../core/store.js';
+import { D, DEFAULT_PREFS, GOOGLE_CLIENT_ID, S, allTasks, canSee, commentsOf, contact, gcalState, logAct, me, mem, proj, save, task, tasksOf, visibleProjects } from '../core/store.js';
 import { fileType, fsize } from '../ui/helpers.js';
 import { effectiveDark } from '../core/theme.js';
 import { mutate, toast } from '../ui/toast.js';
@@ -13,6 +13,7 @@ import { viewOf } from '../shell/view-engine.js';
 import { TEMPLATES, closeModal, openModal } from '../overlays/modals.js';
 import { closePop, openPop, tgt } from '../overlays/popovers.js';
 import { strengthMeter } from '../pages/settings.js';
+import { fetchGoogleUserProfile, requestGoogleOAuth, syncGoogleCalendar } from '../core/gcal.js';
 
 export const A = {},
   IN = {},
@@ -179,7 +180,36 @@ A.back = () => {
   if (h) go(h.route, h.params, { back: true });
   else go('home');
 };
-A.reload = () => render();
+A.switchTab = el => {
+  const id = el.dataset.id;
+  const tab = S.ui.browserTabs.find(t => t.id === id);
+  if (!tab) return;
+  S.ui.activeTabId = id;
+  save();
+  go(tab.route, tab.params);
+};
+A.closeTab = (el, e) => {
+  if (e) e.stopPropagation();
+  const id = el.dataset.id;
+  const tabs = S.ui.browserTabs;
+  if (tabs.length <= 1) return;
+  const idx = tabs.findIndex(t => t.id === id);
+  if (idx === -1) return;
+  tabs.splice(idx, 1);
+  if (S.ui.activeTabId === id) {
+    const nextTab = tabs[Math.min(idx, tabs.length - 1)];
+    S.ui.activeTabId = nextTab.id;
+    save();
+    go(nextTab.route, nextTab.params);
+  } else {
+    save();
+    render();
+  }
+};
+A.addTab = () => {
+  // Opens a new tab defaulting to Home
+  go('home', {}, { newTab: true });
+};
 A.openProject = el => go('project', { id: el.dataset.id, tab: S.prefs.defaultTab || 'board' });
 A.set = el => {
   const k = el.dataset.k;
@@ -543,16 +573,23 @@ A.editTask = el => {
 };
 A.newTask = el => {
   const d = el?.dataset || {};
+  const validProjects = visibleProjects().filter(canSee);
+  if (!validProjects.length) {
+    toast('Create a project first before adding tasks', { kind: 'warn' });
+    openModal({ type: 'project' });
+    return;
+  }
   const pid =
-    d.project ||
-    curProjectId() ||
-    projectFromKey(S.ui.composer?.ctx) ||
-    (S.ui.drawer && task(S.ui.drawer)?.project) ||
-    visibleProjects().find(p => canSee(p) && p.status !== 'complete')?.id;
+    (d.project && canSee(proj(d.project)) ? d.project : null) ||
+    (curProjectId() && canSee(proj(curProjectId())) ? curProjectId() : null) ||
+    (projectFromKey(S.ui.composer?.ctx) && canSee(proj(projectFromKey(S.ui.composer?.ctx))) ? projectFromKey(S.ui.composer?.ctx) : null) ||
+    (S.ui.drawer && task(S.ui.drawer) && canSee(proj(task(S.ui.drawer)?.project)) ? task(S.ui.drawer)?.project : null) ||
+    validProjects.find(p => p.status !== 'complete')?.id ||
+    validProjects[0]?.id;
   S.ui.form = {
     title: '',
     desc: '',
-    project: canSee(proj(pid)) ? pid : 'p1',
+    project: pid,
     status: 'todo',
     assignee: d.assignee || D().me,
     priority: 'medium',
@@ -662,7 +699,7 @@ A.submitTask = () => {
   S.ui.modals.pop();
   fxSet({ added: t.id });
   render();
-  toast(`Created ${t.key} in ${proj(t.project).name}`, { action: 'Open', onAction: () => A.openTask({ dataset: { id: t.id } }) });
+  toast(`Created ${t.key}${proj(t.project)?.name ? ` in ${proj(t.project).name}` : ''}`, { action: 'Open', onAction: () => A.openTask({ dataset: { id: t.id } }) });
 };
 
 /* inline composer */
@@ -687,7 +724,13 @@ A.commitComposer = () => {
     return;
   }
   const f = { title: v, ...c.gb };
-  f.project = f.project || projectFromKey(c.ctx) || curProjectId() || 'p1';
+  const validProjects = visibleProjects().filter(canSee);
+  f.project = f.project || projectFromKey(c.ctx) || curProjectId() || validProjects[0]?.id;
+  if (!f.project) {
+    toast('Create a project first before adding tasks', { kind: 'warn' });
+    openModal({ type: 'project' });
+    return;
+  }
   if (c.ctx === 'mytasks') f.assignee = D().me;
   mutate(() => createTask(f));
   setTimeout(() => $('#composer-in')?.focus(), 0);
@@ -1141,6 +1184,9 @@ A.colAdd = el => {
   A.startComposer({ dataset: { ctx: key, group: el.dataset.id, gb: JSON.stringify({ status: el.dataset.id, ...(pid ? { project: pid } : {}) }) } });
 };
 export function colTasks(key, st) {
+  if (key === 'mytasks') {
+    return allTasks().filter(t => t.assignee === D().me && t.status === st);
+  }
   const pid = projectFromKey(key);
   return (pid ? tasksOf(pid) : allTasks()).filter(t => t.status === st);
 }
@@ -1179,8 +1225,17 @@ A.colSortPrio = el => {
 /* calendar & timeline */
 A.calNav = el => {
   const d = +el.dataset.d;
-  const cur = parse(S.ui.calDate);
-  S.ui.calDate = d === 0 ? iso(TODAY) : S.ui.calMode === 'month' ? iso(new Date(cur.getFullYear(), cur.getMonth() + d, 1)) : iso(addD(cur, d * 7));
+  const cur = parse(S.ui.calDate || iso(TODAY));
+  if (d === 0) {
+    S.ui.calDate = iso(TODAY);
+  } else if (S.ui.route === 'agenda') {
+    const mode = S.ui.agendaMode || 'week';
+    if (mode === 'day') S.ui.calDate = iso(addD(cur, d));
+    else if (mode === 'month') S.ui.calDate = iso(new Date(cur.getFullYear(), cur.getMonth() + d, 1));
+    else S.ui.calDate = iso(addD(cur, d * 7));
+  } else {
+    S.ui.calDate = S.ui.calMode === 'month' ? iso(new Date(cur.getFullYear(), cur.getMonth() + d, 1)) : iso(addD(cur, d * 7));
+  }
   render();
 };
 A.tlToday = () => {
@@ -2098,8 +2153,58 @@ A.doLogin = () => {
   loadingBtn('login-btn', 750, () => enterApp(`Signed in as ${em}`));
 };
 A.socialAuth = el => {
+  const provider = el.dataset.v;
+  if (provider === 'Google') {
+    el.classList.add('is-loading');
+    requestGoogleOAuth({
+      clientId: GOOGLE_CLIENT_ID,
+      onToken: async token => {
+        try {
+          const profile = await fetchGoogleUserProfile(token);
+          mutate(() => {
+            if (profile.name) S.prefs.name = profile.name;
+            const curMe = me();
+            if (curMe) {
+              if (profile.name) curMe.name = profile.name;
+              if (profile.email) curMe.email = profile.email;
+              if (profile.picture) curMe.avatar = profile.picture;
+            }
+            // Save access token for Google Calendar sync
+            D().gcal = {
+              ...(D().gcal || {}),
+              connected: true,
+              accessToken: token,
+              clientId: GOOGLE_CLIENT_ID,
+              calendarId: 'primary',
+              error: null,
+            };
+          });
+
+          // Sync Google Calendar in background
+          syncGoogleCalendar({ accessToken: token, calendarId: 'primary' })
+            .then(events => {
+              toast(`Google Calendar synchronized (${events.length} events)`, { kind: 'info' });
+              render();
+            })
+            .catch(err => {
+              console.warn('Initial calendar sync notice:', err);
+            });
+
+          enterApp(`Signed in as ${profile.name || profile.email || 'Google User'}`);
+        } catch (err) {
+          el.classList.remove('is-loading');
+          toast(`Google sign-in error: ${err.message}`, { kind: 'err' });
+        }
+      },
+      onError: err => {
+        el.classList.remove('is-loading');
+        toast(`Google sign-in cancelled or failed: ${err.message}`, { kind: 'err' });
+      },
+    });
+    return;
+  }
   el.classList.add('is-loading');
-  setTimeout(() => enterApp(`Signed in with ${el.dataset.v}`), 800);
+  setTimeout(() => enterApp(`Signed in with ${provider}`), 800);
 };
 A.doSignup = () => {
   const e = (S.ui.errors = {});
@@ -2251,6 +2356,14 @@ A.onbFinish = () => {
   const o = S.ui.onbData;
   let p;
   mutate(() => {
+    if (S.ui.af?.name?.trim()) {
+      S.prefs.name = S.ui.af.name.trim();
+      const curMe = me();
+      if (curMe) {
+        curMe.name = S.ui.af.name.trim();
+        if (S.ui.af.email?.trim()) curMe.email = S.ui.af.email.trim();
+      }
+    }
     if (o.ws.trim()) {
       const c = ['#2F2E2A', '#5A67D8', '#23918A', '#C54B78'][D().workspaces.length % 4];
       D().ws = { name: o.ws.trim(), url: o.url || 'workspace', c };
@@ -2290,4 +2403,758 @@ A.onbFinish = () => {
   S.ui.auth = null;
   go('project', { id: p.id, tab: S.prefs.defaultTab });
   toast(`Welcome to ${D().ws.name}`);
+};
+
+/* =====================================================================
+   AGENDA & GOOGLE CALENDAR
+   ===================================================================== */
+A.setAgendaMode = el => {
+  S.ui.agendaMode = el.dataset.v;
+  render();
+};
+
+A.setAgendaSource = el => {
+  S.ui.agendaSource = el.dataset.v;
+  render();
+};
+
+A.openGcalModal = () => {
+  openModal({ type: 'gcal' });
+};
+
+A.disconnectGcal = () => {
+  mutate(() => {
+    const g = D().gcal || {};
+    g.connected = false;
+    g.accessToken = null;
+    g.events = [];
+    g.error = null;
+    D().gcal = g;
+  });
+  closeModal();
+  toast('Disconnected from Google Calendar');
+};
+
+A.syncGcal = async () => {
+  const g = D().gcal || {};
+  if (!g.connected && !g.clientId && !g.apiKey && !g.accessToken) {
+    openModal({ type: 'gcal' });
+    return;
+  }
+  toast('Syncing Google Calendar…', { kind: 'info', ms: 1500 });
+  try {
+    const events = await syncGoogleCalendar();
+    toast(`Google Calendar synchronized (${events.length} events)`);
+    render();
+  } catch (err) {
+    mutate(() => {
+      if (D().gcal) D().gcal.error = err.message;
+    });
+    toast(`Sync error: ${err.message}`, { kind: 'err', ms: 4000 });
+  }
+};
+
+A.saveGcalConfig = async () => {
+  const clientId = ($('#gcal-client-id')?.value || '').trim();
+  const apiKey = ($('#gcal-api-key')?.value || '').trim();
+  const calendarId = ($('#gcal-cal-id')?.value || 'primary').trim();
+
+  if (!clientId && !apiKey) {
+    toast('Please provide either an OAuth Client ID or API Key', { kind: 'err' });
+    return;
+  }
+
+  mutate(() => {
+    D().gcal = {
+      ...(D().gcal || {}),
+      clientId,
+      apiKey,
+      calendarId,
+      error: null,
+    };
+  });
+
+  if (clientId) {
+    // Attempt OAuth token acquisition
+    toast('Requesting Google authorization…', { kind: 'info', ms: 3000 });
+    requestGoogleOAuth({
+      clientId,
+      onToken: async token => {
+        mutate(() => {
+          D().gcal.accessToken = token;
+          D().gcal.connected = true;
+          D().gcal.error = null;
+        });
+        closeModal();
+        try {
+          const events = await syncGoogleCalendar({ accessToken: token, calendarId });
+          toast(`Successfully connected! Synced ${events.length} Google events.`);
+          render();
+        } catch (err) {
+          mutate(() => {
+            D().gcal.error = err.message;
+          });
+          toast(`Connected, but sync failed: ${err.message}`, { kind: 'err' });
+        }
+      },
+      onError: err => {
+        mutate(() => {
+          D().gcal.error = err.message;
+        });
+        toast(err.message, { kind: 'err', ms: 4500 });
+        render();
+      },
+    });
+  } else {
+    // API Key flow
+    try {
+      const events = await syncGoogleCalendar({ apiKey, calendarId });
+      closeModal();
+      toast(`Successfully connected! Loaded ${events.length} Google events.`);
+      render();
+    } catch (err) {
+      mutate(() => {
+        D().gcal.error = err.message;
+      });
+      toast(`Connection failed: ${err.message}`, { kind: 'err', ms: 4500 });
+      render();
+    }
+  }
+};
+
+A.agendaGcalDetail = el => {
+  const gcal = gcalState();
+  const ev = (gcal.events || []).find(e => e.id === el.dataset.id);
+  if (!ev) return;
+  openModal({
+    type: 'prompt',
+    title: ev.title,
+    label: 'Google Calendar Event Details',
+    value: `${ev.date} at ${ev.time}${ev.location ? `\nLocation: ${ev.location}` : ''}${ev.desc ? `\n\n${ev.desc}` : ''}${ev.hangoutLink ? `\n\nVideo Call: ${ev.hangoutLink}` : ''}`,
+    ok: 'Close',
+  });
+};
+
+/* =====================================================================
+   PEOPLE CRM
+   ===================================================================== */
+IN.crmQ = el => {
+  S.ui.crmQ = el.value;
+  render();
+};
+
+IN.crmFilterCo = el => {
+  S.ui.crmFilterCo = el.value;
+  render();
+};
+
+A.newContact = () => {
+  S.ui.cform = { name: '', company: '', title: '', email: '', phone: '', location: '', tags: '', notes: '' };
+  openModal({ type: 'contact' });
+};
+
+A.editContact = el => {
+  const c = contact(el.dataset.id);
+  if (!c) return;
+  S.ui.cform = {
+    name: c.name || '',
+    company: c.company || '',
+    title: c.title || '',
+    email: c.email || '',
+    phone: c.phone || '',
+    location: c.location || '',
+    tags: Array.isArray(c.tags) ? c.tags.join(', ') : (c.tags || ''),
+    notes: c.notes || '',
+  };
+  openModal({ type: 'contact', edit: c.id });
+};
+
+A.openContact = el => {
+  const c = contact(el.dataset.id);
+  if (!c) return;
+  openModal({ type: 'contactDetail', contact: c });
+};
+
+A.submitContact = () => {
+  const name = ($('#c-name')?.value || '').trim();
+  if (!name) {
+    toast('Contact name is required', { kind: 'err' });
+    $('#c-name')?.focus();
+    return;
+  }
+  const company = ($('#c-company')?.value || '').trim();
+  const title = ($('#c-title')?.value || '').trim();
+  const email = ($('#c-email')?.value || '').trim();
+  const phone = ($('#c-phone')?.value || '').trim();
+  const location = ($('#c-loc')?.value || '').trim();
+  const tags = ($('#c-tags')?.value || '')
+    .split(',')
+    .map(t => t.trim())
+    .filter(Boolean);
+  const notes = ($('#c-notes')?.value || '').trim();
+
+  const curModal = S.ui.modals[S.ui.modals.length - 1];
+  const editId = curModal?.edit;
+
+  mutate(() => {
+    D().contacts = D().contacts || [];
+    if (editId) {
+      const c = contact(editId);
+      if (c) {
+        c.name = name;
+        c.company = company;
+        c.title = title;
+        c.email = email;
+        c.phone = phone;
+        c.location = location;
+        c.tags = tags;
+        c.notes = notes;
+        c.updatedAt = Date.now();
+      }
+    } else {
+      const colors = ['#4B5BD6', '#10B981', '#F59E0B', '#EC4899', '#8B5CF6', '#06B6D4'];
+      const c = {
+        id: uid('c'),
+        name,
+        company,
+        title,
+        email,
+        phone,
+        location,
+        tags,
+        notes,
+        color: colors[D().contacts.length % colors.length],
+        meetings: [],
+        followUps: [],
+        createdAt: Date.now(),
+        updatedAt: Date.now(),
+      };
+      D().contacts.push(c);
+    }
+  });
+
+  closeModal();
+  toast(editId ? 'Contact updated' : `Created contact for ${name}`);
+};
+
+A.delContact = el => {
+  const c = contact(el.dataset.id);
+  if (!c) return;
+  closeModal();
+  confirmDlg({
+    title: `Delete ${c.name}?`,
+    body: `Are you sure you want to delete ${esc(c.name)}? All logged meetings and follow-ups will be permanently removed.`,
+    ok: 'Delete contact',
+    danger: true,
+    run: () => {
+      mutate(() => {
+        D().contacts = (D().contacts || []).filter(x => x.id !== c.id);
+      });
+      toast(`Deleted ${c.name}`);
+    },
+  });
+};
+
+A.filterByCompany = el => {
+  S.ui.crmFilterCo = el.dataset.co;
+  S.ui.crmTab = 'people';
+  render();
+};
+
+A.newMeeting = el => {
+  const contactId = el?.dataset?.id || '';
+  openModal({ type: 'meeting', contactId });
+};
+
+A.submitMeeting = () => {
+  const title = ($('#m-title')?.value || '').trim();
+  const contactId = $('#m-contact')?.value;
+  const date = $('#m-date')?.value || new Date().toISOString().slice(0, 10);
+  const time = $('#m-time')?.value || '10:00';
+  const notes = ($('#m-notes')?.value || '').trim();
+  const followUpTask = ($('#m-fu')?.value || '').trim();
+
+  if (!title) {
+    toast('Meeting title is required', { kind: 'err' });
+    $('#m-title')?.focus();
+    return;
+  }
+  const c = contact(contactId);
+  if (!c) {
+    toast('Please select an associated contact', { kind: 'err' });
+    return;
+  }
+
+  mutate(() => {
+    c.meetings = c.meetings || [];
+    c.meetings.unshift({
+      id: uid('m'),
+      title,
+      date,
+      time,
+      notes,
+      type: date >= new Date().toISOString().slice(0, 10) ? 'upcoming' : 'past',
+      createdAt: Date.now(),
+    });
+    c.lastContacted = date;
+
+    if (followUpTask) {
+      c.followUps = c.followUps || [];
+      c.followUps.push({
+        id: uid('fu'),
+        title: followUpTask,
+        done: false,
+        due: date,
+        createdAt: Date.now(),
+      });
+    }
+  });
+
+  closeModal();
+  toast(`Logged meeting with ${c.name}`);
+};
+
+A.toggleFollowUp = el => {
+  const cid = el.dataset.cid;
+  const fid = el.dataset.fid;
+  const c = contact(cid);
+  if (!c) return;
+  const fu = (c.followUps || []).find(f => f.id === fid);
+  if (!fu) return;
+
+  mutate(() => {
+    fu.done = !fu.done;
+  });
+  render();
+  toast(fu.done ? 'Follow-up marked as completed' : 'Follow-up reopened');
+};
+
+A.addFollowUpPrompt = el => {
+  const c = contact(el.dataset.id);
+  if (!c) return;
+  openModal({
+    type: 'prompt',
+    title: `Add follow-up for ${c.name}`,
+    label: 'Action item description',
+    value: '',
+    ok: 'Add follow-up',
+    run: val => {
+      if (!val || !val.trim()) return;
+      mutate(() => {
+        c.followUps = c.followUps || [];
+        c.followUps.push({
+          id: uid('fu'),
+          title: val.trim(),
+          done: false,
+          due: new Date().toISOString().slice(0, 10),
+          createdAt: Date.now(),
+        });
+      });
+      toast('Follow-up task added');
+      // If contactDetail is open, re-render it
+      if (S.ui.modals.some(m => m.type === 'contactDetail' && m.contact?.id === c.id)) {
+        render();
+      }
+    },
+  });
+};
+
+/* =====================================================================
+   SIDEBAR VISIBILITY PREFERENCES
+   ===================================================================== */
+A.toggleSidebarPage = el => {
+  const page = el.dataset.page;
+  if (!page) return;
+  const isChecked = el.checked;
+  S.prefs.sidebarHidden = S.prefs.sidebarHidden || {};
+  if (isChecked) {
+    delete S.prefs.sidebarHidden[page];
+  } else {
+    S.prefs.sidebarHidden[page] = true;
+  }
+  save();
+  render();
+};
+
+A.showAllSidebarPages = () => {
+  S.prefs.sidebarHidden = {};
+  save();
+  render();
+  toast('All pages are now visible in the sidebar');
+};
+
+A.resetSidebarPages = () => {
+  S.prefs.sidebarHidden = {};
+  save();
+  render();
+  toast('Sidebar reset to default');
+};
+
+/* =====================================================================
+   MEETINGS & CAL.COM BOOKING WORKFLOWS
+   ===================================================================== */
+IN.meetingsSearch = el => {
+  S.ui.meetingsQ = el.value;
+  render();
+};
+
+A.openCalcomSettings = () => {
+  openModal({ type: 'calcomSettings' });
+};
+
+A.openAvailabilityModal = () => {
+  openModal({ type: 'calcomAvailability' });
+};
+
+A.newMeetingModal = () => {
+  openModal({ type: 'newMeeting' });
+};
+
+A.openRescheduleModal = el => {
+  openModal({ type: 'rescheduleMeeting', id: el.dataset.id });
+};
+
+A.openEditMeetingModal = el => {
+  openModal({ type: 'editMeeting', id: el.dataset.id });
+};
+
+A.researchMeetingAttendee = el => {
+  const m = meeting(el.dataset.id);
+  const name = m?.personName || 'Attendee';
+  toast(`AI Background Research queued for ${name}… We'll build the full agent pipeline next!`, { kind: 'info', ms: 4000 });
+};
+
+A.readMeetingReport = el => {
+  const m = meeting(el.dataset.id);
+  const name = m?.personName || 'Attendee';
+  toast(`Attendee briefing report for ${name}: No issues noted. Previous calls: 0. Notes: “${m?.notes || 'None'}”`, { kind: 'info', ms: 5000 });
+};
+
+A.cancelMeeting = el => {
+  const m = meeting(el.dataset.id);
+  if (!m) return;
+  confirmDlg({
+    title: `Cancel meeting with ${m.personName || 'attendee'}?`,
+    body: `Are you sure you want to cancel “${esc(m.title)}” on ${fmtDate(m.date, true)}? The attendee will receive a cancellation notice.`,
+    ok: 'Cancel meeting',
+    danger: true,
+    run: () => {
+      mutate(() => {
+        m.status = 'cancelled';
+        m.updatedAt = Date.now();
+      });
+      toast(`Cancelled meeting with ${m.personName || 'attendee'}`);
+      render();
+    },
+  });
+};
+
+A.restoreMeeting = el => {
+  const m = meeting(el.dataset.id);
+  if (!m) return;
+  mutate(() => {
+    m.status = 'upcoming';
+    m.updatedAt = Date.now();
+  });
+  toast(`Reopened meeting with ${m.personName}`);
+  render();
+};
+
+A.submitNewMeeting = () => {
+  const title = ($('#nm-title')?.value || '').trim();
+  const name = ($('#nm-name')?.value || '').trim();
+  const email = ($('#nm-email')?.value || '').trim();
+  const company = ($('#nm-company')?.value || '').trim();
+  const titleRole = ($('#nm-title-role')?.value || '').trim();
+  const date = $('#nm-date')?.value || new Date().toISOString().slice(0, 10);
+  const time = $('#nm-time')?.value || '14:00';
+  const duration = +($('#nm-dur')?.value || 30);
+  const location = ($('#nm-loc')?.value || 'Google Meet').trim();
+  const meetUrl = ($('#nm-url')?.value || '').trim();
+  const guests = ($('#nm-guests')?.value || '')
+    .split(',')
+    .map(x => x.trim())
+    .filter(Boolean);
+  const notes = ($('#nm-notes')?.value || '').trim();
+
+  if (!title || !name || !email) {
+    toast('Meeting title, attendee name, and email are required', { kind: 'err' });
+    return;
+  }
+
+  mutate(() => {
+    const newMtg = {
+      id: uid('mtg'),
+      title,
+      personName: name,
+      personEmail: email,
+      personCompany: company,
+      personTitle: titleRole,
+      date,
+      time,
+      duration,
+      location,
+      meetUrl,
+      guests,
+      notes,
+      status: 'upcoming',
+      source: 'manual',
+      createdAt: Date.now(),
+    };
+    D().meetings = D().meetings || [];
+    D().meetings.unshift(newMtg);
+
+    // Auto add/sync person to People CRM
+    D().contacts = D().contacts || [];
+    let c = D().contacts.find(x => x.email && x.email.toLowerCase() === email.toLowerCase());
+    if (!c) {
+      c = {
+        id: uid('c'),
+        name,
+        email,
+        company,
+        title: titleRole,
+        phone: '',
+        location: '',
+        tags: ['client', 'cal.com'],
+        notes: `Booked "${title}" on ${fmtDate(date, true)}`,
+        meetings: [],
+        followUps: [],
+        lastContacted: date,
+        createdAt: Date.now(),
+      };
+      D().contacts.unshift(c);
+
+      // Notification 1: Person added to People CRM
+      D().notifs.unshift({
+        id: uid('n'),
+        type: 'assign',
+        text: `added new contact profile for ${name}`,
+        snippet: `${name} (${company || email}) was added to your People directory from booking.`,
+        at: Date.now(),
+        read: false,
+      });
+    }
+
+    // Notification 2: New meeting notification
+    D().notifs.unshift({
+      id: uid('n'),
+      type: 'update',
+      text: `New meeting booked: ${title} with ${name}`,
+      snippet: `Scheduled for ${fmtDate(date, true)} at ${time} (${location})`,
+      at: Date.now(),
+      read: false,
+    });
+
+    // Notification 3: Post-meeting reminder to update profile
+    D().notifs.unshift({
+      id: uid('n'),
+      type: 'comment',
+      text: `Meeting follow-up reminder for ${name}`,
+      snippet: `Remember to log meeting notes and update profile for ${name} after the call.`,
+      at: Date.now() + 1000,
+      read: false,
+    });
+  });
+
+  closeModal();
+  toast(`Scheduled meeting with ${name} and added to People CRM!`);
+  render();
+};
+
+A.submitReschedule = () => {
+  const id = $('#rs-id')?.value;
+  const m = meeting(id);
+  if (!m) return;
+  const newDate = $('#rs-date')?.value;
+  const newTime = $('#rs-time')?.value;
+  const reason = ($('#rs-reason')?.value || '').trim();
+
+  if (!newDate || !newTime) {
+    toast('Please choose a valid date and time', { kind: 'err' });
+    return;
+  }
+
+  mutate(() => {
+    m.date = newDate;
+    m.time = newTime;
+    m.status = 'upcoming';
+    if (reason) m.notes = (m.notes ? m.notes + '\n\n' : '') + `Rescheduled to ${fmtDate(newDate, true)} ${newTime}. Note: ${reason}`;
+    m.updatedAt = Date.now();
+
+    D().notifs.unshift({
+      id: uid('n'),
+      type: 'update',
+      text: `Meeting rescheduled: ${m.title}`,
+      snippet: `Moved to ${fmtDate(newDate, true)} at ${newTime} with ${m.personName}.`,
+      at: Date.now(),
+      read: false,
+    });
+  });
+
+  closeModal();
+  toast(`Rescheduled meeting with ${m.personName}`);
+  render();
+};
+
+A.submitEditMeeting = () => {
+  const id = $('#em-id')?.value;
+  const m = meeting(id);
+  if (!m) return;
+  const title = ($('#em-title')?.value || '').trim();
+  const loc = ($('#em-loc')?.value || '').trim();
+  const url = ($('#em-url')?.value || '').trim();
+  const guests = ($('#em-guests')?.value || '')
+    .split(',')
+    .map(x => x.trim())
+    .filter(Boolean);
+  const notes = ($('#em-notes')?.value || '').trim();
+
+  if (!title) {
+    toast('Meeting title is required', { kind: 'err' });
+    return;
+  }
+
+  mutate(() => {
+    m.title = title;
+    m.location = loc;
+    m.meetUrl = url;
+    m.guests = guests;
+    m.notes = notes;
+    m.updatedAt = Date.now();
+  });
+
+  closeModal();
+  toast('Meeting details updated');
+  render();
+};
+
+A.saveCalcomSettings = () => {
+  const username = ($('#cal-username')?.value || 'phato').trim();
+  const apiKey = ($('#cal-key')?.value || '').trim();
+
+  mutate(() => {
+    const cal = calcomState();
+    cal.username = username;
+    cal.apiKey = apiKey;
+    cal.connected = true;
+
+    (cal.eventTypes || []).forEach((et, i) => {
+      const toggle = $(`#et-toggle-${i}`);
+      if (toggle) et.active = toggle.checked;
+    });
+  });
+
+  closeModal();
+  toast('Cal.com settings saved');
+  render();
+};
+
+A.saveAvailability = () => {
+  const startTime = $('#av-start')?.value || '09:00';
+  const endTime = $('#av-end')?.value || '18:00';
+  const days = $$('[data-av-day]:checked').map(el => el.dataset.avDay);
+
+  mutate(() => {
+    const cal = calcomState();
+    cal.availability = {
+      ...(cal.availability || {}),
+      startTime,
+      endTime,
+      days,
+    };
+  });
+
+  closeModal();
+  toast('Weekly availability updated');
+  render();
+};
+
+A.simulateCalcomBooking = () => {
+  const names = [
+    ['Marcus Vance', 'marcus@vancecapital.com', 'Vance Capital', 'Managing Partner'],
+    ['Chloe Chen', 'chloe@growthpulse.dev', 'GrowthPulse', 'VP of Engineering'],
+    ['Liam O\'Connor', 'liam@apexai.tech', 'Apex AI', 'Product Architect'],
+  ];
+  const pick = names[Math.floor(Math.random() * names.length)];
+  const tom = new Date(Date.now() + 86400000 * 2).toISOString().slice(0, 10);
+
+  mutate(() => {
+    const newMtg = {
+      id: uid('mtg'),
+      title: '30 Min Strategy Call',
+      eventType: '30min',
+      personName: pick[0],
+      personEmail: pick[1],
+      personCompany: pick[2],
+      personTitle: pick[3],
+      date: tom,
+      time: '15:00',
+      duration: 30,
+      location: 'Cal Video',
+      meetUrl: 'https://app.cal.com/video/phato-strategy',
+      notes: 'Automated booking received via Cal.com API webhook.',
+      guests: [],
+      source: 'calcom',
+      status: 'upcoming',
+      createdAt: Date.now(),
+    };
+    D().meetings = D().meetings || [];
+    D().meetings.unshift(newMtg);
+
+    // Auto-add to contacts
+    D().contacts = D().contacts || [];
+    let c = D().contacts.find(x => x.email === pick[1]);
+    if (!c) {
+      c = {
+        id: uid('c'),
+        name: pick[0],
+        email: pick[1],
+        company: pick[2],
+        title: pick[3],
+        phone: '+1 (555) 234-5678',
+        location: 'San Francisco, CA',
+        tags: ['client', 'cal.com', 'lead'],
+        notes: `Booked via Cal.com API webhook on ${fmtDate(tom, true)}.`,
+        meetings: [],
+        followUps: [],
+        lastContacted: tom,
+        createdAt: Date.now(),
+      };
+      D().contacts.unshift(c);
+
+      // Notification: Added to people list
+      D().notifs.unshift({
+        id: uid('n'),
+        type: 'assign',
+        text: `added ${pick[0]} to your People directory`,
+        snippet: `${pick[0]} (${pick[2]}) booked a meeting and was automatically saved to contacts.`,
+        at: Date.now(),
+        read: false,
+      });
+    }
+
+    // Notification: New meeting booked
+    D().notifs.unshift({
+      id: uid('n'),
+      type: 'update',
+      text: `New Cal.com booking: 30 Min Strategy Call with ${pick[0]}`,
+      snippet: `Scheduled for ${fmtDate(tom, true)} at 15:00. Added to calendar.`,
+      at: Date.now(),
+      read: false,
+    });
+
+    // Notification: Post-meeting reminder to update profile
+    D().notifs.unshift({
+      id: uid('n'),
+      type: 'comment',
+      text: `Meeting follow-up reminder for ${pick[0]}`,
+      snippet: `Remember to log meeting notes and update profile for ${pick[0]} after the call.`,
+      at: Date.now() + 500,
+      read: false,
+    });
+  });
+
+  toast(`Simulated new Cal.com booking with ${pick[0]}! Added to Meetings, People CRM, and Notifications.`);
+  render();
 };

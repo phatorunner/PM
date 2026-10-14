@@ -14,8 +14,11 @@ import { renderAuth } from '../pages/auth.js';
 
 export const ROUTE_NAMES = {
   home: 'Home',
+  agenda: 'Agenda',
+  people: 'People',
   inbox: 'Inbox',
   mytasks: 'My Tasks',
+  meetings: 'Meetings',
   favorites: 'Favorites',
   notifications: 'Notifications',
   search: 'Search',
@@ -36,8 +39,11 @@ export const ROUTE_NAMES = {
 };
 export const ROUTE_ICONS = {
   home: 'house',
+  agenda: 'calendar-days',
+  people: 'contact',
   inbox: 'inbox',
   mytasks: 'circle-check',
+  meetings: 'video',
   favorites: 'star',
   notifications: 'bell',
   search: 'search',
@@ -55,6 +61,31 @@ export const ROUTE_ICONS = {
   archive: 'archive',
 };
 
+import { save } from '../core/store.js';
+import { uid } from '../core/utils.js';
+
+export function getRouteInfo(route, params = {}) {
+  let title = ROUTE_NAMES[route] || 'Page';
+  let icon = ROUTE_ICONS[route] || 'file-text';
+  if (route === 'project' && params.id) {
+    const p = proj(params.id);
+    if (p) {
+      title = p.name;
+      icon = p.icon;
+    }
+  } else if (route === 'member' && params.id) {
+    const m = mem(params.id);
+    if (m) title = m.name;
+  } else if (route === 'team' && params.id) {
+    const tm = team(params.id);
+    if (tm) {
+      title = tm.name;
+      icon = tm.icon || 'users';
+    }
+  }
+  return { title, icon };
+}
+
 export function go(route, params = {}, opt = {}) {
   if (route === 'project' && !params.tab) params.tab = 'board';
   if (!opt.back) S.ui.history.push({ route: S.ui.route, params: S.ui.params });
@@ -67,6 +98,31 @@ export function go(route, params = {}, opt = {}) {
   S.ui.composer = null;
   S.ui.editCell = null;
   if (!opt.keepDrawer && S.ui.drawer && innerWidth < 900) S.ui.drawer = null;
+
+  // Sync browser tabs
+  if (!S.ui.browserTabs || !S.ui.browserTabs.length) {
+    S.ui.browserTabs = [{ id: 'tab_home', route: 'home', params: {}, title: 'Home', icon: 'house' }];
+    S.ui.activeTabId = 'tab_home';
+  }
+  const info = getRouteInfo(route, params);
+  if (opt.newTab) {
+    const newId = uid('tab');
+    S.ui.browserTabs.push({ id: newId, route, params: { ...params }, title: info.title, icon: info.icon });
+    S.ui.activeTabId = newId;
+  } else {
+    // If active tab exists, update it to the current route and params
+    let curTab = S.ui.browserTabs.find(t => t.id === S.ui.activeTabId);
+    if (!curTab) {
+      curTab = S.ui.browserTabs[0];
+      S.ui.activeTabId = curTab.id;
+    }
+    curTab.route = route;
+    curTab.params = { ...params };
+    curTab.title = info.title;
+    curTab.icon = info.icon;
+  }
+  save();
+
   // Pages render instantly; motion (not a fake wait) carries the transition.
   clearTimeout(go._t);
   S.ui.loading = false;
@@ -107,7 +163,7 @@ export function tryFocus(key) {
 }
 export function pageTitle() {
   const u = S.ui;
-  if (u.auth) return 'Gr8r Studio';
+  if (u.auth) return 'Revelation Fintech';
   let t = ROUTE_NAMES[u.route] || 'Not found';
   if (u.route === 'project' && proj(u.params.id)) t = `${(PTABS.find(x => x[0] === u.params.tab) || [0, 'Saved view'])[1]} · ${proj(u.params.id).name}`;
   if (u.route === 'member' && mem(u.params.id)) t = mem(u.params.id).name;

@@ -1,5 +1,5 @@
 /* ---------- HOME ---------- */
-import { DAY, MONL, TODAY, WDL, diffD, esc, fmtDate, parse } from '../core/utils.js';
+import { DAY, MON, MONL, TODAY, WD, WDL, diffD, esc, fmtDate, parse } from '../core/utils.js';
 import { ic } from '../core/icons.js';
 import { D, S, allTasks, canSee, isOver, pColor, progressOf, proj, visibleProjects } from '../core/store.js';
 import { av, avStack, empty, pIcon, pStatus, prIcon, progBar } from '../ui/helpers.js';
@@ -36,17 +36,104 @@ export function pageHome() {
     return { lab, ts };
   };
   const dls = [dl('Today', 0, 0), dl('Tomorrow', 1, 1), dl('This week', 2, 7)];
+
+  // Meetings calculation
+  const allMeetings = (D().meetings || []).slice().sort((a, b) => `${a.date} ${a.time}`.localeCompare(`${b.date} ${b.time}`));
+  const mTab = S.ui.homeMeetingsTab || 'upcoming';
+  const meetingLists = {
+    upcoming: allMeetings.filter(m => m.status === 'upcoming' || (!m.status && m.date >= new Date().toISOString().slice(0, 10))),
+    past: allMeetings.filter(m => m.status === 'past' || (!m.status && m.date < new Date().toISOString().slice(0, 10))),
+    cancelled: allMeetings.filter(m => m.status === 'cancelled'),
+  };
+  const curMeetings = meetingLists[mTab].slice(0, 5);
+
+  // Find imminent meeting starting within 1 hour (60 minutes)
+  const now = Date.now();
+  let imminentMeeting = null;
+  let imminentDiffMins = 0;
+  let imminentTargetMs = 0;
+  for (const m of meetingLists.upcoming) {
+    if (!m.date || !m.time) continue;
+    const mtgTime = new Date(`${m.date}T${m.time.length === 5 ? m.time : '00:00'}:00`).getTime();
+    const diffMs = mtgTime - now;
+    const diffMins = Math.round(diffMs / (60 * 1000));
+    // If meeting starts within the next 60 minutes or is currently in progress (within duration)
+    if (diffMins >= -(m.duration || 30) && diffMins <= 60) {
+      imminentMeeting = m;
+      imminentDiffMins = diffMins;
+      imminentTargetMs = mtgTime;
+      break;
+    }
+  }
+
+
   return `<div class="page">
     <div class="ph"><div><h1>${greet}, ${esc(S.prefs.name.split(' ')[0])}</h1><p><span class="num">${WDL[TODAY.getDay()]}, ${MONL[TODAY.getMonth()]} ${TODAY.getDate()}</span> · Here's what's happening across your workspace.</p></div>
-      <div class="acts"><button class="btn btn-secondary hide-m" data-a="invite">${ic('user-plus', 14)}Invite member</button><button class="btn btn-secondary hide-m" data-a="newProject">${ic('folder-plus', 14)}New project</button><button class="btn btn-primary" data-a="newTask">${ic('plus', 14)}New task</button></div></div>
+      <div class="acts">
+        <button class="btn btn-secondary hide-m" data-a="invite">${ic('user-plus', 14)}Invite member</button>
+        <button class="btn btn-secondary hide-m" data-a="newProject">${ic('folder-plus', 14)}New project</button>
+        <button class="btn btn-secondary" data-a="newMeetingModal">${ic('video', 14)}Schedule</button>
+        <button class="btn btn-primary" data-a="newTask">${ic('plus', 14)}New task</button>
+      </div>
+    </div>
     <div class="stats" style="margin-bottom:16px">
       <button class="stat" data-a="go" data-r="projects"><span class="k">${ic('folder-kanban', 14)}Active projects</span><span class="v">${activeP.length}</span><span class="d">${activeP.filter(p => p.status === 'risk').length} at risk</span></button>
       <button class="stat" data-a="goTasks" data-f="open"><span class="k">${ic('circle-dashed', 14)}Open tasks</span><span class="v">${open.length}</span><span class="d">${open.filter(t => t.assignee === D().me).length} assigned to you</span></button>
-      <button class="stat" data-a="goTasks" data-f="done"><span class="k">${ic('circle-check', 14)}Completed</span><span class="v">${doneWk.length}</span><span class="d up">this week</span></button>
+      <button class="stat" data-a="go" data-r="meetings"><span class="k">${ic('video', 14)}Meetings</span><span class="v">${meetingLists.upcoming.length}</span><span class="d">scheduled calls</span></button>
       <button class="stat" data-a="goTasks" data-f="overdue"><span class="k">${ic('clock-alert', 14)}Overdue</span><span class="v" style="${over.length ? 'color:var(--red)' : ''}">${over.length}</span><span class="d ${over.length ? 'bad' : ''}">${over.length ? 'need attention' : 'all on track'}</span></button>
     </div>
     <div class="grid2">
       <div class="stack">
+        <!-- Meetings component (above My tasks) -->
+        <section class="panel" aria-labelledby="h-meetings">
+          <div class="panel-h">
+            <h2 id="h-meetings">Meetings</h2>
+            <div class="acts">
+              <div class="seg" role="tablist">${[
+                ['upcoming', 'Upcoming'],
+                ['cancelled', 'Cancelled'],
+              ]
+                .map(
+                  ([k, n]) =>
+                    `<button role="tab" class="${mTab === k ? 'on' : ''}" data-a="set" data-k="homeMeetingsTab" data-v="${k}">${n} <span class="faint">${meetingLists[k].length}</span></button>`,
+                )
+                .join('')}</div>
+              <button class="ibtn ibtn-sm" data-a="go" data-r="meetings" data-tip="Open Meetings" aria-label="Open Meetings">${ic('arrow-up-right', 15)}</button>
+            </div>
+          </div>
+          ${
+            curMeetings.length
+              ? curMeetings
+                  .map(
+                    m => `<div class="mini" style="min-height:50px;padding:10px 14px;border-bottom:1px solid var(--divider);gap:10px;align-items:center">
+                      <div style="min-width:65px">
+                        <b style="font-size:13px;color:var(--text)">${m.time || '10:00'}</b>
+                        <div class="faint" style="font-size:11px">${fmtDate(m.date, true)}</div>
+                      </div>
+                      <div class="grow" style="min-width:0">
+                        <div class="row" style="gap:6px">
+                          <b class="trunc" style="font-size:13px">${esc(m.title)}</b>
+                          ${m.source === 'calcom' ? '<span class="badge" style="background:#111;color:#fff;border:1px solid #333;font-size:9.5px;padding:1px 5px">Cal.com</span>' : ''}
+                        </div>
+                        <div class="faint trunc" style="font-size:12px;margin-top:1px">
+                          with <b>${esc(m.personName || 'Guest')}</b> ${m.personCompany ? `· ${esc(m.personCompany)}` : ''}
+                          ${m.location ? `<span style="color:var(--accent);margin-left:4px">· ${esc(m.location)}</span>` : ''}
+                        </div>
+                      </div>
+                      <div class="row" style="gap:6px">
+                        ${m.meetUrl && m.status !== 'cancelled' ? `<a class="btn btn-secondary btn-xs" href="${esc(m.meetUrl)}" target="_blank" rel="noopener">${ic('video', 12)}Join</a>` : ''}
+                        <button class="ibtn ibtn-xs" data-a="openRescheduleModal" data-id="${m.id}" data-tip="Reschedule" aria-label="Reschedule">${ic('calendar-clock', 13)}</button>
+                        <button class="ibtn ibtn-xs" data-a="openEditMeetingModal" data-id="${m.id}" data-tip="Edit meeting" aria-label="Edit meeting">${ic('pencil', 12)}</button>
+                      </div>
+                    </div>`,
+                  )
+                  .join('')
+              : empty(mTab === 'upcoming' ? 'video' : 'calendar-check', mTab === 'upcoming' ? 'No upcoming meetings' : 'No meetings in this tab', mTab === 'upcoming' ? 'Share your Cal.com link to get booked.' : '', '', 'sm')
+          }
+          ${meetingLists[mTab].length > 5 ? `<button class="addrow" style="padding-left:14px;border-top:1px solid var(--divider);border-bottom:0" data-a="go" data-r="meetings">View all ${meetingLists[mTab].length} meetings ${ic('arrow-right', 13)}</button>` : ''}
+        </section>
+
+        <!-- My tasks -->
         <section class="panel" aria-labelledby="h-mytasks">
           <div class="panel-h"><h2 id="h-mytasks">My tasks</h2>
             <div class="acts"><div class="seg" role="tablist">${[
@@ -77,6 +164,55 @@ export function pageHome() {
         </section>
       </div>
       <div class="stack">
+        ${
+          imminentMeeting
+            ? (() => {
+                const personDetails = [
+                  imminentMeeting.personName,
+                  imminentMeeting.personRole || imminentMeeting.personTitle,
+                  imminentMeeting.personCompany ? `@ ${imminentMeeting.personCompany}` : '',
+                ].filter(Boolean).join(' · ');
+
+                return `<div class="imminent-meeting-card" aria-label="Upcoming meeting">
+                  <div class="imminent-bg"></div>
+                  <div class="imminent-bg-overlay"></div>
+
+                  <div class="row" style="justify-content:flex-end;align-items:center">
+                    <div class="row" style="gap:4px">
+                      <button class="ibtn ibtn-xs" data-a="openRescheduleModal" data-id="${imminentMeeting.id}" data-tip="Reschedule" aria-label="Reschedule" style="color:rgba(255,255,255,0.7);background:rgba(255,255,255,0.06);border-radius:var(--r-sm)">${ic('calendar-clock', 13)}</button>
+                      <button class="ibtn ibtn-xs" data-a="openEditMeetingModal" data-id="${imminentMeeting.id}" data-tip="Edit details" aria-label="Edit details" style="color:rgba(255,255,255,0.7);background:rgba(255,255,255,0.06);border-radius:var(--r-sm)">${ic('pencil', 13)}</button>
+                    </div>
+                  </div>
+
+                  <div class="imminent-content">
+                    <h3 class="imminent-title">${esc(imminentMeeting.title)}</h3>
+                    <div class="imminent-desc">
+                      <div>${imminentMeeting.time} · ${imminentMeeting.duration || 30} mins ${imminentMeeting.location ? `· ${esc(imminentMeeting.location)}` : ''}</div>
+                      ${personDetails ? `<div style="margin-top:3px"><span class="imminent-person-highlight">${esc(imminentMeeting.personName || '')}</span> ${imminentMeeting.personCompany ? `<span class="imminent-company-highlight">(${esc(imminentMeeting.personCompany)})</span>` : ''} ${imminentMeeting.personTitle ? `· ${esc(imminentMeeting.personTitle)}` : ''}</div>` : ''}
+                    </div>
+                  </div>
+
+                  <div class="imminent-actions">
+                    <div class="row" style="gap:6px">
+                      <button class="imminent-btn-icon" data-a="researchMeetingAttendee" data-id="${imminentMeeting.id}" data-tip="AI Research" aria-label="AI Research">
+                        ${ic('sparkles', 15)}
+                      </button>
+                      <button class="imminent-btn-report" data-a="readMeetingReport" data-id="${imminentMeeting.id}">
+                        ${ic('file-text', 13)} Read report
+                      </button>
+                    </div>
+                    ${
+                      imminentMeeting.meetUrl
+                        ? `<a class="imminent-btn-join" href="${esc(imminentMeeting.meetUrl)}" target="_blank" rel="noopener">
+                            Join Call
+                          </a>`
+                        : ''
+                    }
+                  </div>
+                </div>`;
+              })()
+            : ''
+        }
         <section class="panel">
           <div class="panel-h"><h2>Upcoming deadlines</h2><div class="acts"><button class="btn btn-sm btn-ghost" data-a="go" data-r="calendar">${ic('calendar', 13)}Calendar</button></div></div>
           <div class="panel-b" style="padding-bottom:6px">

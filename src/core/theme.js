@@ -16,7 +16,7 @@ export function applyPrefs() {
   else r.removeAttribute('data-motion');
 }
 export function effectiveDark() {
-  if (S.prefs.theme === 'dark') return true;
+  if (S.prefs.theme === 'dark' || S.prefs.theme === 'phato' || S.prefs.theme === 'revelation') return true;
   if (S.prefs.theme === 'light') return false;
   return window.matchMedia && matchMedia('(prefers-color-scheme: dark)').matches;
 }
