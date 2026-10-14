@@ -57,15 +57,15 @@ export function pageAgents() {
         <div style="flex:1;display:flex;flex-direction:column;align-items:center;justify-content:center;padding:24px var(--gutter);max-width:720px;width:100%;margin:0 auto">
           
           <!-- Large Input Capsule -->
-          <div style="width:100%;background:var(--surface);border:1px solid var(--border-strong);border-radius:14px;box-shadow:0 8px 32px rgba(0,0,0,0.5);padding:14px 16px;display:flex;flex-direction:column;gap:12px;transition:border-color var(--dur)">
+          <div class="agent-capsule" style="width:100%;padding:14px 16px;display:flex;flex-direction:column;gap:12px">
             <textarea
               id="agents-input"
-              class="textarea"
+              class="agent-textarea"
               placeholder="${esc(agent.placeholder)}"
               rows="2"
               data-in="agentsDraft"
               data-key-enter="submitAgentChat"
-              style="width:100%;background:transparent;border:none;padding:0;outline:none;resize:none;font-size:15px;line-height:1.5;color:var(--text);caret-color:var(--accent)"
+              style="width:100%;font-size:15px;line-height:1.5;color:var(--text);caret-color:var(--accent)"
             >${esc(agentsState.inputDraft || '')}</textarea>
 
             <div class="row" style="align-items:center;justify-content:space-between;padding-top:4px">
@@ -122,22 +122,9 @@ export function pageAgents() {
               .join('')}
           </div>
         </div>`
-        : `<!-- Active Conversation View (Clean Linear Chat Style) -->
-        <header class="ph" style="padding:0 var(--gutter);height:46px;display:flex;align-items:center;border-bottom:1px solid var(--border);background:transparent">
-          <div class="row" style="gap:8px">
-            <span style="font-size:13px;font-weight:500;color:var(--text)">${esc(msgs[0]?.content?.slice(0, 32) || 'New conversation')}</span>
-            <span style="color:var(--text-4)">${ic('star', 12)}</span>
-          </div>
-
-          <div class="acts" style="margin-left:auto">
-            <button class="btn btn-secondary btn-xs" data-a="clearAgentChat" style="font-size:12px;padding:3px 10px;gap:5px;border-radius:6px">
-              ${ic('plus', 12)}New chat
-            </button>
-          </div>
-        </header>
-
+        : `<!-- Active Conversation View (Clean Linear Chat Style - No Header) -->
         <!-- Messages Area -->
-        <div id="agents-chat-body" style="flex:1;overflow-y:auto;padding:32px var(--gutter) 24px;display:flex;flex-direction:column;gap:24px;scrollbar-width:thin">
+        <div id="agents-chat-body" style="flex:1;overflow-y:auto;padding:24px var(--gutter);display:flex;flex-direction:column;gap:24px;scrollbar-width:thin">
           <div style="text-align:center;font-size:11px;color:var(--text-4);margin-bottom:8px">
             Today ${new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
           </div>
@@ -216,15 +203,15 @@ export function pageAgents() {
 
         <!-- Sticky Bottom Chat Capsule -->
         <div style="padding:16px var(--gutter) 24px;background:transparent">
-          <div style="max-width:800px;margin:0 auto;background:var(--surface);border:1px solid var(--border-strong);border-radius:12px;padding:12px 14px;box-shadow:0 8px 32px rgba(0,0,0,0.5)">
+          <div class="agent-capsule" style="max-width:800px;margin:0 auto;padding:12px 14px">
             <textarea
               id="agents-input"
-              class="textarea"
+              class="agent-textarea"
               placeholder="Reply…"
               rows="1"
               data-in="agentsDraft"
               data-key-enter="submitAgentChat"
-              style="width:100%;background:transparent;border:none;padding:0;outline:none;resize:none;font-size:13.5px;line-height:1.45;color:var(--text)"
+              style="width:100%;font-size:13.5px;line-height:1.45;color:var(--text)"
             >${esc(agentsState.inputDraft || '')}</textarea>
 
             <div class="row" style="align-items:center;justify-content:space-between;padding-top:8px">
