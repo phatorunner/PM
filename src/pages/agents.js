@@ -1,6 +1,6 @@
 /* =====================================================================
    AGENTS: Linear-Style AI Agent Command Center (Revelation Fintech)
-   Seamless shell integration, centered prompt capsule, and instant answers.
+   Completely clean, zero background watermark, pristine chat layout.
    ===================================================================== */
 import { esc } from '../core/utils.js';
 import { ic } from '../core/icons.js';
@@ -11,28 +11,25 @@ import { A, IN, KEY } from '../actions/actions.js';
 export const AGENTS_LIST = [
   {
     id: 'agent',
-    name: 'Revelation Agent',
+    name: 'Agent',
     role: 'Autonomous Project & Intelligence Partner',
-    tagline: 'Turn ideas into structured projects, research queries, and plan execution.',
-    icon: 'sparkles',
-    color: '#8e9af3',
-    placeholder: 'Ask Revelation...',
+    placeholder: 'Ask Agent…',
     examples: [
       {
         title: 'Create a new project',
-        desc: 'Turn an idea into a well-scoped project roadmap',
+        desc: 'Turn an idea into a well-scoped project',
         icon: 'folder-plus',
-        prompt: 'Create a new project roadmap for automated fintech KYC verification pipeline',
+        prompt: 'can you create me a new project for marketing im starting it tomorrow and i needs to be finished in a week. im doing it solo its a branding project for Denta',
       },
       {
         title: 'Research a topic',
-        desc: 'Research market liquidity benchmarks and compliance',
+        desc: 'Research a topic across the issue backlog',
         icon: 'search',
         prompt: 'Research interchange fee compression trends and compare Stripe vs Adyen',
       },
       {
         title: 'Set up new team',
-        desc: 'Organize permissions and workflows for your team',
+        desc: 'Create a team that matches how your organization works',
         icon: 'users',
         prompt: 'Help me configure a specialized Quantitative Risk & Compliance team workflow',
       },
@@ -53,25 +50,14 @@ export function pageAgents() {
   const thinking = agentsState.isThinking;
 
   return `<div class="page flush" style="display:flex;flex-direction:column;height:100%;min-height:100%;position:relative;background:var(--bg)">
-    <!-- Subtle Ambient Center Watermark (Linear style) -->
-    <div style="position:absolute;inset:0;display:grid;place-items:center;pointer-events:none;opacity:0.035;overflow:hidden">
-      <svg width="420" height="420" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="0.8">
-        <circle cx="12" cy="12" r="10"/>
-        <path d="m4.93 4.93 4.24 4.24"/>
-        <path d="m14.83 9.17 4.24-4.24"/>
-        <path d="m14.83 14.83 4.24 4.24"/>
-        <path d="m9.17 14.83-4.24 4.24"/>
-        <circle cx="12" cy="12" r="4"/>
-      </svg>
-    </div>
 
     ${
       !msgs.length
         ? `<!-- Centered Linear-Style Command View -->
-        <div style="flex:1;display:flex;flex-direction:column;align-items:center;justify-content:center;padding:24px var(--gutter);max-width:720px;width:100%;margin:0 auto;z-index:2">
+        <div style="flex:1;display:flex;flex-direction:column;align-items:center;justify-content:center;padding:24px var(--gutter);max-width:720px;width:100%;margin:0 auto">
           
           <!-- Large Input Capsule -->
-          <div style="width:100%;background:var(--surface);border:1px solid var(--border-strong);border-radius:14px;box-shadow:0 8px 32px rgba(0,0,0,0.45);padding:14px 16px;display:flex;flex-direction:column;gap:12px;transition:border-color var(--dur)">
+          <div style="width:100%;background:var(--surface);border:1px solid var(--border-strong);border-radius:14px;box-shadow:0 8px 32px rgba(0,0,0,0.5);padding:14px 16px;display:flex;flex-direction:column;gap:12px;transition:border-color var(--dur)">
             <textarea
               id="agents-input"
               class="textarea"
@@ -110,7 +96,6 @@ export function pageAgents() {
           <!-- Examples Header -->
           <div style="width:100%;margin-top:28px;display:flex;align-items:center;justify-content:space-between;margin-bottom:12px">
             <span class="faint" style="font-size:12px;font-weight:500;letter-spacing:0.02em">Get started with some examples</span>
-            <span class="faint" style="font-size:11px;color:var(--text-4)">Session only · Instant answers</span>
           </div>
 
           <!-- 3-Column Example Prompt Cards -->
@@ -137,73 +122,134 @@ export function pageAgents() {
               .join('')}
           </div>
         </div>`
-        : `<!-- Active Conversation View -->
-        <header class="ph" style="padding:0 var(--gutter);height:48px;display:flex;align-items:center;border-bottom:1px solid var(--border);background:transparent;z-index:2">
+        : `<!-- Active Conversation View (Clean Linear Chat Style) -->
+        <header class="ph" style="padding:0 var(--gutter);height:46px;display:flex;align-items:center;border-bottom:1px solid var(--border);background:transparent">
           <div class="row" style="gap:8px">
-            <span style="color:var(--accent)">${ic('sparkles', 15)}</span>
-            <span style="font-weight:600;font-size:13.5px;color:var(--text)">Revelation Agent</span>
-            <span class="badge" style="font-size:10px;padding:1px 6px">Active Session</span>
+            <span style="font-size:13px;font-weight:500;color:var(--text)">${esc(msgs[0]?.content?.slice(0, 32) || 'New conversation')}</span>
+            <span style="color:var(--text-4)">${ic('star', 12)}</span>
           </div>
 
           <div class="acts" style="margin-left:auto">
-            <button class="btn btn-secondary btn-sm" data-a="clearAgentChat" style="font-size:12px;padding:3px 10px;gap:5px">
+            <button class="btn btn-secondary btn-xs" data-a="clearAgentChat" style="font-size:12px;padding:3px 10px;gap:5px;border-radius:6px">
               ${ic('plus', 12)}New chat
             </button>
           </div>
         </header>
 
-        <div id="agents-chat-body" style="flex:1;overflow-y:auto;padding:24px var(--gutter);display:flex;flex-direction:column;gap:20px;scrollbar-width:thin;z-index:2">
+        <!-- Messages Area -->
+        <div id="agents-chat-body" style="flex:1;overflow-y:auto;padding:32px var(--gutter) 24px;display:flex;flex-direction:column;gap:24px;scrollbar-width:thin">
+          <div style="text-align:center;font-size:11px;color:var(--text-4);margin-bottom:8px">
+            Today ${new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
+          </div>
+
           ${msgs
             .map(m => {
               const isUser = m.role === 'user';
-              return `<div style="display:flex;flex-direction:column;align-items:${isUser ? 'flex-end' : 'flex-start'};max-width:760px;margin:0 auto;width:100%">
-                <div class="row" style="gap:6px;margin-bottom:4px;font-size:11px;color:var(--text-3)">
-                  ${
-                    isUser
-                      ? `<span>You</span><span>·</span><span>${m.time}</span>`
-                      : `<span style="color:var(--accent);font-weight:500">Revelation Agent</span><span>·</span><span>${m.time}</span>`
-                  }
+              if (isUser) {
+                // User Prompt Pill on right
+                return `<div style="display:flex;justify-content:flex-end;max-width:800px;margin:0 auto;width:100%">
+                  <div style="padding:8px 14px;border-radius:12px;background:var(--surface-2);border:1px solid var(--border-strong);color:var(--text);font-size:13.5px;line-height:1.5;max-width:70%;box-shadow:var(--shadow-sm)">
+                    ${esc(m.content)}
+                  </div>
+                </div>`;
+              }
+
+              // Agent Response on left with execution telemetry & clean card if created
+              return `<div style="display:flex;flex-direction:column;align-items:flex-start;max-width:800px;margin:0 auto;width:100%">
+                <div style="font-size:13.5px;line-height:1.6;color:var(--text);margin-bottom:12px">
+                  ${m.content}
                 </div>
-                <div style="padding:12px 16px;border-radius:${isUser ? '12px 12px 2px 12px' : '12px 12px 12px 2px'};background:${isUser ? 'var(--surface-2)' : 'var(--surface)'};border:1px solid ${isUser ? 'var(--border-strong)' : 'var(--border)'};color:var(--text);font-size:13.5px;line-height:1.6;white-space:pre-wrap;box-shadow:var(--shadow-sm);max-width:${isUser ? '85%' : '100%'}">${esc(m.content)}</div>
+
+                ${
+                  m.card
+                    ? `<div style="margin-top:4px;width:100%">
+                      <div class="row" style="gap:6px;font-size:11.5px;color:var(--text-3);margin-bottom:8px">
+                        <span>Worked for ${m.card.elapsed || '11 seconds'}</span>
+                        <span style="opacity:0.6">${ic('chevron-down', 11)}</span>
+                      </div>
+                      <div style="font-size:11.5px;color:var(--text-3);margin-bottom:6px">Created project</div>
+
+                      <div style="background:var(--surface);border:1px solid var(--border);border-radius:8px;padding:12px 14px;max-width:520px;width:100%;box-shadow:var(--shadow-sm)">
+                        <div style="font-size:11px;font-family:var(--mono);color:var(--text-4);margin-bottom:3px">${esc(m.card.key)}</div>
+                        <div class="row" style="gap:6px;margin-bottom:10px">
+                          <span style="color:var(--amber)">${ic('folder', 13)}</span>
+                          <span style="font-size:13px;font-weight:600;color:var(--text)">${esc(m.card.title)}</span>
+                        </div>
+                        <div class="row" style="gap:12px;flex-wrap:wrap;font-size:11.5px;color:var(--text-3)">
+                          <span class="row" style="gap:4px">
+                            <span class="sdot" style="background:var(--st-backlog);width:6px;height:6px;border-radius:50%"></span>
+                            <span>Backlog</span>
+                          </span>
+                          <span class="row" style="gap:4px">
+                            ${ic('briefcase', 12)}
+                            <span>Axestreet</span>
+                          </span>
+                          <span class="row" style="gap:4px">
+                            <span style="width:14px;height:14px;border-radius:50%;background:var(--accent);color:#fff;font-size:9px;display:grid;place-items:center">P</span>
+                            <span>${esc(S.prefs.name || 'Owner')}</span>
+                          </span>
+                          <span style="color:var(--text-4)">--- No priority</span>
+                          <span class="row" style="gap:4px">
+                            ${ic('calendar', 11)}
+                            <span>Oct 22nd</span>
+                          </span>
+                        </div>
+                      </div>
+                    </div>`
+                    : ''
+                }
               </div>`;
             })
             .join('')}
+
           ${
             thinking
-              ? `<div style="display:flex;flex-direction:column;align-items:flex-start;max-width:760px;margin:0 auto;width:100%">
-                  <div class="row" style="gap:6px;margin-bottom:4px;font-size:11px;color:var(--text-3)">
-                    <span style="color:var(--accent);font-weight:500">Revelation Agent</span><span>·</span><span>Analyzing…</span>
-                  </div>
-                  <div class="row" style="gap:8px;padding:12px 16px;border-radius:12px 12px 12px 2px;background:var(--surface);border:1px solid var(--border);color:var(--text-3);font-size:13px">
-                    <span class="btn is-loading" style="width:14px;height:14px;pointer-events:none"></span>
-                    <span>Synthesizing response and structuring roadmap…</span>
+              ? `<div style="display:flex;flex-direction:column;align-items:flex-start;max-width:800px;margin:0 auto;width:100%">
+                  <div class="row" style="gap:6px;font-size:12px;color:var(--text-3)">
+                    <span class="btn is-loading" style="width:12px;height:12px;pointer-events:none"></span>
+                    <span>Thinking…</span>
                   </div>
                 </div>`
               : ''
           }
         </div>
 
-        <!-- Sticky Bottom Chat Bar -->
-        <div style="padding:12px var(--gutter) 16px;border-top:1px solid var(--border);background:transparent;z-index:2">
-          <div style="max-width:760px;margin:0 auto;position:relative;background:var(--surface);border:1px solid var(--border-strong);border-radius:12px;padding:10px 14px">
+        <!-- Sticky Bottom Chat Capsule -->
+        <div style="padding:16px var(--gutter) 24px;background:transparent">
+          <div style="max-width:800px;margin:0 auto;background:var(--surface);border:1px solid var(--border-strong);border-radius:12px;padding:12px 14px;box-shadow:0 8px 32px rgba(0,0,0,0.5)">
             <textarea
               id="agents-input"
               class="textarea"
-              placeholder="Reply to Revelation Agent…"
+              placeholder="Reply…"
               rows="1"
               data-in="agentsDraft"
               data-key-enter="submitAgentChat"
-              style="width:100%;background:transparent;border:none;padding:0;outline:none;resize:none;font-size:13.5px;line-height:1.45;color:var(--text);padding-right:40px"
+              style="width:100%;background:transparent;border:none;padding:0;outline:none;resize:none;font-size:13.5px;line-height:1.45;color:var(--text)"
             >${esc(agentsState.inputDraft || '')}</textarea>
-            
-            <button
-              class="ibtn ibtn-xs"
-              data-a="submitAgentChat"
-              style="position:absolute;right:8px;bottom:8px;width:24px;height:24px;border-radius:6px;background:${agentsState.inputDraft?.trim() ? 'var(--accent)' : 'var(--surface-3)'};color:${agentsState.inputDraft?.trim() ? 'var(--on-accent)' : 'var(--text-4)'};display:grid;place-items:center;transition:background var(--dur)"
-              aria-label="Send"
-            >
-              ${ic('arrow-up', 13)}
-            </button>
+
+            <div class="row" style="align-items:center;justify-content:space-between;padding-top:8px">
+              <div class="row" style="gap:6px">
+                <button class="btn btn-ghost btn-xs" style="font-size:11.5px;padding:2px 6px;color:var(--text-3);gap:4px">
+                  ${ic('sparkles', 12)}
+                  <span>Skills</span>
+                  <span style="opacity:0.6">${ic('chevron-down', 10)}</span>
+                </button>
+              </div>
+
+              <div class="row" style="gap:4px">
+                <button class="ibtn ibtn-xs" style="color:var(--text-3);border-radius:4px" data-tip="Attach" aria-label="Attach">
+                  ${ic('paperclip', 13)}
+                </button>
+                <button
+                  class="ibtn ibtn-xs"
+                  data-a="submitAgentChat"
+                  style="width:24px;height:24px;border-radius:6px;background:${agentsState.inputDraft?.trim() ? 'var(--accent)' : 'var(--surface-3)'};color:${agentsState.inputDraft?.trim() ? 'var(--on-accent)' : 'var(--text-4)'};display:grid;place-items:center;transition:background var(--dur)"
+                  aria-label="Send"
+                >
+                  ${ic('arrow-up', 13)}
+                </button>
+              </div>
+            </div>
           </div>
         </div>`
     }
@@ -258,10 +304,11 @@ A.submitAgentChat = () => {
     const now2 = new Date();
     const timeStr2 = `${String(now2.getHours()).padStart(2, '0')}:${String(now2.getMinutes()).padStart(2, '0')}`;
 
-    let reply = generateAgentReply(text);
+    let replyObj = generateAgentReply(text);
     agentsState.messages.push({
       role: 'agent',
-      content: reply,
+      content: replyObj.content,
+      card: replyObj.card || null,
       time: timeStr2,
     });
 
@@ -277,12 +324,26 @@ A.submitAgentChat = () => {
 
 function generateAgentReply(query) {
   const q = query.toLowerCase();
-  if (q.includes('project') || q.includes('roadmap') || q.includes('kyc')) {
-    return `### Project Roadmap: Automated KYC & Verification Pipeline\n\n1. **Architecture & Compliance:**\n   - Partner with certified IDV gateway for document authenticity validation.\n   - Implement Sanctions / PEP watchlist screening with 24h caching.\n\n2. **Ledger & Settlement:**\n   - Automated level-2 verification badge assigned to member accounts.\n   - Webhook trigger to activate multi-currency wallet upon successful verification.\n\n3. **Milestones:**\n   - Week 1–2: Ingress validation & sandbox webhook testing.\n   - Week 3: Production canary deployment with 5% traffic split.`;
-  }
-  if (q.includes('research') || q.includes('interchange') || q.includes('stripe')) {
-    return `### Market Research: Interchange Fee Compression\n\n- **Stripe vs Adyen Interchange:** Adyen's Interchange++ pricing delivers ~8–14bps optimization for enterprise transaction volumes exceeding $50M/year.\n- **Direct Card Network Routing:** Implementing network tokenization lowers decline rates by ~3.2% while reducing scheme fraud liability.\n- **Recommendation:** Implement automated smart routing across acquiring partners to optimize settlement fees.`;
-  }
-  return `### Strategic Analysis\n\nRe: "${query}"\n\nI have scoped this request against Revelation Fintech's current workspace posture. We can generate automatic tasks, project boards, and assign team owners directly from this specification whenever you are ready to execute.`;
-}
 
+  if (q.includes('how\'s it going') || q.includes('how are you') || q.includes('hello') || q.includes('hi')) {
+    return {
+      content: 'Going well—ready to help. What are you working on today?',
+    };
+  }
+
+  if (q.includes('project') || q.includes('denta') || q.includes('marketing') || q.includes('create')) {
+    const projTitle = q.includes('denta') ? 'Denta branding' : 'Marketing Launch';
+    return {
+      content: 'I have set up the project workspace, roadmap milestones, and initial sprint structure for you.',
+      card: {
+        key: 'P-REV-7',
+        title: projTitle,
+        elapsed: '11 seconds',
+      },
+    };
+  }
+
+  return {
+    content: `Understood. I have scoped "${query}" and aligned it with your current workspace roadmap. Let me know if you would like me to create the corresponding task items or adjust the timeline.`,
+  };
+}

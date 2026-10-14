@@ -125,10 +125,9 @@ export function go(route, params = {}, opt = {}) {
   }
   save();
 
-  // Pages render instantly; motion (not a fake wait) carries the transition.
+  // Pages render instantly with zero delay or sliding transitions
   clearTimeout(go._t);
   S.ui.loading = false;
-  if (!same) fxSet(opt.tab ? { tab: true, tabs: true } : { route: true, tabs: true });
   render();
   const c = $('.content');
   if (c && !same) c.scrollTop = 0;
