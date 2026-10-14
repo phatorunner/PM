@@ -285,3 +285,4 @@ function generateAgentReply(query) {
   }
   return `### Strategic Analysis\n\nRe: "${query}"\n\nI have scoped this request against Revelation Fintech's current workspace posture. We can generate automatic tasks, project boards, and assign team owners directly from this specification whenever you are ready to execute.`;
 }
+
