@@ -81,3 +81,4 @@ export async function getCurrentUser() {
   } = await supabase.auth.getUser();
   return user;
 }
+
