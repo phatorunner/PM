@@ -26,7 +26,7 @@ export function pagePeople() {
   const allFollowUps = contacts.flatMap(c => (c.followUps || []).map(f => ({ ...f, contact: c })));
   const pendingFollowUps = allFollowUps.filter(f => !f.done);
 
-  return `<div class="page wide" style="max-width:1200px">
+  return `<div class="page wide" style="max-width:1440px">
     <div class="ph">
       <div>
         <h1>People</h1>

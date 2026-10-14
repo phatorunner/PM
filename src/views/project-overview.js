@@ -20,7 +20,7 @@ export function projOverview(p) {
     .activity.filter(a => a.project === p.id)
     .slice(0, 6);
   const daysLeft = diffD(parse(p.due), TODAY);
-  return `<div class="page" style="max-width:1160px;padding-top:22px">
+  return `<div class="page" style="max-width:1440px;padding-top:22px">
     <div class="grid2">
       <div class="stack">
         <section class="panel"><div class="panel-h"><h2>About</h2><div class="acts"><button class="btn btn-sm btn-ghost" data-a="editProject" data-id="${p.id}">${ic('pencil', 13)}Edit</button></div></div><div class="panel-b" style="font-size:14px;line-height:1.6;color:var(--text)">${esc(p.desc)}</div></section>
