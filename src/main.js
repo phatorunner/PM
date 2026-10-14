@@ -57,6 +57,7 @@ import './actions/archive.js';
 import { S, D } from './core/store.js';
 import { A } from './actions/actions.js';
 import { ROUTE_NAMES, render, go } from './shell/render.js';
+import { supabase } from './core/supabase.js';
 
 (function init() {
   document.documentElement.lang = 'en';
@@ -76,6 +77,26 @@ import { ROUTE_NAMES, render, go } from './shell/render.js';
     if (activeTab) go(activeTab.route, activeTab.params);
     else go(S.prefs.home || 'home');
   }
+
+  // Supabase Auth listener: sync profile when user logs in via Google redirect or email
+  supabase.auth.onAuthStateChange((event, session) => {
+    const user = session?.user;
+    if (user) {
+      const uName = user.user_metadata?.full_name || user.user_metadata?.name || user.email?.split('@')[0];
+      if (uName) S.prefs.name = uName;
+      const curMe = D().members.find(m => m.id === D().me);
+      if (curMe) {
+        if (uName) curMe.name = uName;
+        if (user.email) curMe.email = user.email;
+        if (user.user_metadata?.avatar_url) curMe.avatar = user.user_metadata.avatar_url;
+      }
+      if (S.ui.auth) {
+        S.ui.auth = null;
+        go(S.prefs.home || 'home');
+      }
+      render();
+    }
+  });
 })();
 
 // Dev-only handle for debugging and screenshot tooling; stripped from production builds.
