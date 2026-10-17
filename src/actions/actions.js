@@ -425,11 +425,31 @@ A.openTask = el => {
   S.ui.mention = null;
   S.ui.subOpen = null;
   S.ui.drawerTab = S.ui.drawerTab || 'comments';
+  clearTimeout(A._closeDrawerTimer);
   render();
   const dr = $('.drawer');
   if (dr && !dr.contains(document.activeElement)) dr.focus({ preventScroll: true });
 };
 A.closeDrawer = () => {
+  const dr = $('.drawer');
+  const scrim = $('.drawer-scrim');
+  if (dr && !dr.classList.contains('leave')) {
+    dr.classList.remove('enter');
+    dr.classList.add('leave');
+    if (scrim) {
+      scrim.classList.remove('enter');
+      scrim.classList.add('leave');
+    }
+    clearTimeout(A._closeDrawerTimer);
+    A._closeDrawerTimer = setTimeout(() => {
+      S.ui.drawer = null;
+      S.ui.drawerFull = false;
+      S.ui.subOpen = null;
+      render();
+    }, 220);
+    return;
+  }
+  clearTimeout(A._closeDrawerTimer);
   S.ui.drawer = null;
   S.ui.drawerFull = false;
   S.ui.subOpen = null;

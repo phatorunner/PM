@@ -140,6 +140,18 @@
 .drawer-scrim.full.enter {
   animation: fade 0.18s both;
 }
+.drawer.leave {
+  animation: drawerOut 0.24s var(--ease-drawer) forwards;
+  pointer-events: none;
+}
+.drawer.full.leave {
+  animation: modalOut 0.2s var(--ease) forwards;
+  pointer-events: none;
+}
+.drawer-scrim.leave {
+  animation: fadeOut 0.2s ease forwards;
+  pointer-events: none;
+}
 @keyframes drawerIn {
   from {
     transform: translateX(48px);
@@ -148,6 +160,34 @@
   to {
     transform: none;
     opacity: 1;
+  }
+}
+@keyframes drawerOut {
+  from {
+    transform: none;
+    opacity: 1;
+  }
+  to {
+    transform: translateX(48px);
+    opacity: 0;
+  }
+}
+@keyframes modalOut {
+  from {
+    opacity: 1;
+    transform: none;
+  }
+  to {
+    opacity: 0;
+    transform: translateY(8px) scale(0.97);
+  }
+}
+@keyframes fadeOut {
+  from {
+    opacity: 1;
+  }
+  to {
+    opacity: 0;
   }
 }
 .drawer-h {
