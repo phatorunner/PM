@@ -16,6 +16,7 @@ import { strengthMeter } from '../pages/settings.js';
 import { apiRequestRescheduleBooking, apiRescheduleBooking, startCalcomPolling, syncCalcom } from '../features/calcom-sync.js';
 import { fetchGoogleUserProfile, requestGoogleOAuth, syncGoogleCalendar } from '../core/gcal.js';
 import { chooseLocalFolder, createRecoveryBackup, disconnectLocalFolder, reconnectLocalFolder, saveAttachmentContent, triggerAutosave } from '../features/fs-storage.js';
+import { applyPwaUpdate, promptInstallApp } from '../features/pwa.js';
 
 export const A = {},
   IN = {},
@@ -1488,7 +1489,6 @@ A.removePhase = el => {
   if (!p || !p.phases) return;
   const ph = p.phases.find(x => x.id === phid);
   const affectedTasks = D().tasks.filter(t => t.project === p.id && t.phase === phid);
-  const otherPhases = p.phases.filter(x => x.id !== phid);
   confirmDlg({
     title: `Delete ${ph?.name || 'Phase'}?`,
     body: affectedTasks.length
@@ -3364,5 +3364,14 @@ A.triggerManualBackup = () => {
   createRecoveryBackup(false);
   toast('Recovery backup triggered');
 };
+
+A.installApp = async () => {
+  const installed = await promptInstallApp();
+  if (!installed) {
+    // If browser didn't prompt, show informational modal or toast
+    toast('Use your browser’s address bar install icon (App available) or menu > Apps > Install Gr8r Studio', { kind: 'info', ms: 5000 });
+  }
+};
+A.applyPwaUpdate = () => applyPwaUpdate();
 
 

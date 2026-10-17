@@ -35,6 +35,7 @@ export function seed() {
     comments,
     activity,
     notifs,
+    files,
     events,
     meetings: [],
     contacts: [],

@@ -3,7 +3,6 @@ import { esc } from '../core/utils.js';
 import { ic } from '../core/icons.js';
 import { S, tasksOf } from '../core/store.js';
 import { kcard } from './board.js';
-import { empty } from '../ui/helpers.js';
 
 export function phasesHtml(p) {
   if (!p) return '';

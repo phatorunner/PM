@@ -1,5 +1,4 @@
-/* ---------- HOME ---------- */
-import { DAY, MON, MONL, TODAY, WD, WDL, diffD, esc, fmtDate, parse } from '../core/utils.js';
+import { MONL, TODAY, WDL, diffD, esc, fmtDate, parse } from '../core/utils.js';
 import { ic } from '../core/icons.js';
 import { D, S, allTasks, canSee, isOver, pColor, progressOf, proj, visibleProjects } from '../core/store.js';
 import { av, avStack, empty, pIcon, pStatus, prIcon, progBar } from '../ui/helpers.js';
@@ -13,7 +12,6 @@ export function pageHome() {
   const mineAll = all.filter(t => t.assignee === D().me);
   const activeP = visibleProjects().filter(p => canSee(p) && p.status !== 'complete');
   const open = all.filter(t => t.status !== 'done');
-  const doneWk = all.filter(t => t.status === 'done' && t.completedAt && Date.now() - t.completedAt < 7 * DAY);
   const over = all.filter(isOver);
   const tab = S.ui.homeTab;
   const lists = {
@@ -50,8 +48,6 @@ export function pageHome() {
   // Find imminent meeting starting within 1 hour (60 minutes)
   const now = Date.now();
   let imminentMeeting = null;
-  let imminentDiffMins = 0;
-  let imminentTargetMs = 0;
   for (const m of meetingLists.upcoming) {
     if (!m.date || !m.time) continue;
     const mtgTime = new Date(`${m.date}T${m.time.length === 5 ? m.time : '00:00'}:00`).getTime();
@@ -60,8 +56,6 @@ export function pageHome() {
     // If meeting starts within the next 60 minutes or is currently in progress (within duration)
     if (diffMins >= -(m.duration || 30) && diffMins <= 60) {
       imminentMeeting = m;
-      imminentDiffMins = diffMins;
-      imminentTargetMs = mtgTime;
       break;
     }
   }

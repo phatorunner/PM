@@ -9,12 +9,14 @@ import { permsTable, teamsGrid } from './members.js';
 import { page404 } from './errors.js';
 import { SHORTCUTS } from '../overlays/modals.js';
 import { FS_STATUS, getStorageSettings } from '../features/fs-storage.js';
+import { PWA_STATE } from '../features/pwa.js';
 
 export const SET_NAV = [
   [
     'General',
     [
       ['workspace', 'Workspace', 'building-2'],
+      ['app', 'Install & App', 'download'],
       ['database', 'Database', 'database'],
       ['appearance', 'Appearance', 'palette'],
       ['sidebar', 'Sidebar', 'panel-left'],
@@ -101,6 +103,135 @@ export function settingsBody(sec, title) {
       <div class="field"><label class="label" for="ws-url">Workspace URL</label><div class="row" style="gap:0"><span class="input" style="width:auto;background:var(--surface-2);border-right:0;border-radius:6px 0 0 6px;display:flex;align-items:center;color:var(--text-2)">gr8rstudio.com/</span><input class="input" id="ws-url" value="${esc(d.ws.url)}" style="border-radius:0 6px 6px 0"></div><span class="hint">Changing the URL will break existing links.</span></div>
       <div><button class="btn btn-primary" data-a="saveWorkspace" id="ws-save">Save changes</button></div></div></div></form>
       <div class="sblock"><h2 style="color:var(--red)">Danger zone</h2>${srow('Delete workspace', 'Permanently delete this workspace, its projects, tasks, and files. This cannot be undone.', `<button class="btn btn-danger-ghost" style="border:1px solid color-mix(in srgb,var(--red) 35%,transparent)" data-a="delWorkspace">Delete workspace</button>`)}</div>`
+      );
+    case 'app':
+      return (
+        H('Install Gr8r Studio as a standalone desktop app on your device.') +
+        `
+        <!-- Installation Status Banner -->
+        ${(() => {
+          if (PWA_STATE.isInstalled) {
+            return `<div class="alert ok" style="margin-bottom:20px">
+              ${ic('circle-check', 16)}
+              <div style="line-height:1.5">
+                <b>Installed & Running in Standalone Window</b><br>
+                Gr8r Studio is running as an installed Progressive Web App. Offline app caching and native desktop integration are active.
+              </div>
+            </div>`;
+          }
+          if (PWA_STATE.installPrompt) {
+            return `<div class="alert info" style="margin-bottom:20px">
+              ${ic('download', 16)}
+              <div style="line-height:1.5;flex:1">
+                <b>Ready to Install</b><br>
+                Install Gr8r Studio on Windows via Chrome or Microsoft Edge for a dedicated taskbar icon and standalone workspace window.
+              </div>
+              <button class="btn btn-primary btn-sm" data-a="installApp">${ic('download', 13)}Install App</button>
+            </div>`;
+          }
+          return `<div class="alert info" style="margin-bottom:20px">
+            ${ic('info', 16)}
+            <div style="line-height:1.5">
+              <b>Browser-Powered Standalone PWA</b><br>
+              Gr8r Studio is powered by standard Web and File System APIs. You can install it directly through your browser without heavy runtimes like Electron.
+            </div>
+          </div>`;
+        })()}
+
+        <!-- Install Action Block -->
+        <div class="sblock" style="margin-top:0">
+          <h2>Application Installation</h2>
+          <p class="muted" style="margin:4px 0 16px;font-size:var(--fs-sm);line-height:1.55">
+            Running Gr8r Studio as an installed PWA gives you a distraction-free window, full keyboard shortcuts, and instant launch without browser tabs.
+          </p>
+
+          <div class="panel" style="padding:16px;display:flex;flex-direction:column;gap:14px;background:var(--surface)">
+            <div class="row" style="gap:12px;align-items:flex-start">
+              <span class="ftype" style="--c:var(--accent);width:38px;height:38px;border-radius:var(--r-sm)">
+                ${ic('monitor-down', 18)}
+              </span>
+              <div class="grow" style="min-width:0">
+                <div style="font-weight:600;font-size:14px;display:flex;align-items:center;gap:8px">
+                  <span>${PWA_STATE.isInstalled ? 'Gr8r Studio is Installed' : 'Install Gr8r Studio'}</span>
+                  ${PWA_STATE.isInstalled
+                    ? `<span class="badge green">${ic('check', 11)}Standalone</span>`
+                    : PWA_STATE.installPrompt
+                    ? `<span class="badge accent">${ic('sparkles', 11)}Installable</span>`
+                    : `<span class="badge" style="background:var(--surface-3);color:var(--text-3)">Browser Tab</span>`
+                  }
+                </div>
+                <div class="faint" style="font-size:12px;margin-top:3px">
+                  ${PWA_STATE.isInstalled
+                    ? 'Running inside a standalone PWA application window.'
+                    : 'Compatible with Chromium-based browsers (Chrome, Edge, Brave, Opera) on Windows, macOS, and Linux.'
+                  }
+                </div>
+              </div>
+            </div>
+
+            <div class="row" style="gap:8px;border-top:1px solid var(--border);padding-top:12px;flex-wrap:wrap">
+              ${PWA_STATE.isInstalled
+                ? `<button class="btn btn-secondary" disabled style="opacity:0.7">${ic('check', 14)}Already Installed</button>`
+                : PWA_STATE.installPrompt
+                ? `<button class="btn btn-primary" data-a="installApp">${ic('download', 14)}Install App Now</button>`
+                : `<button class="btn btn-primary" data-a="installApp">${ic('download', 14)}Install App</button>`
+              }
+            </div>
+          </div>
+        </div>
+
+        <!-- Manual Installation Instructions for Edge & Chrome -->
+        <div class="sblock">
+          <h2>Browser Installation Instructions</h2>
+          <p class="muted" style="margin:4px 0 16px;font-size:var(--fs-sm);line-height:1.55">
+            If your browser does not trigger the one-click prompt automatically, install using your browser's native controls:
+          </p>
+
+          <div class="col" style="gap:12px">
+            <div class="panel" style="padding:14px;background:var(--surface)">
+              <div class="row" style="gap:10px;font-weight:600;font-size:13.5px">
+                ${ic('globe', 16)}<span>Google Chrome on Windows</span>
+              </div>
+              <p class="faint" style="margin:6px 0 0;font-size:12.5px;line-height:1.5">
+                Click the <b>Install Gr8r Studio</b> icon (desktop with down-arrow) on the right side of the URL address bar, or click <b>Menu (⋮) &gt; Save and share &gt; Install Gr8r Studio…</b>.
+              </p>
+            </div>
+
+            <div class="panel" style="padding:14px;background:var(--surface)">
+              <div class="row" style="gap:10px;font-weight:600;font-size:13.5px">
+                ${ic('compass', 16)}<span>Microsoft Edge on Windows</span>
+              </div>
+              <p class="faint" style="margin:6px 0 0;font-size:12.5px;line-height:1.5">
+                Click the <b>App available</b> icon (three squares and a plus) in the address bar, or click <b>Menu (…) &gt; Apps &gt; Install Gr8r Studio</b>.
+              </p>
+            </div>
+          </div>
+        </div>
+
+        <!-- Offline & Updates Capabilities -->
+        <div class="sblock">
+          <h2>Offline App Shell & Update Flow</h2>
+          ${srow(
+            'Offline App Shell',
+            'Service worker caches code, styles, and static assets so Gr8r Studio launches immediately even without an active internet connection.',
+            PWA_STATE.isSupported
+              ? `<span class="badge green">${ic('check', 11)}Active (sw.js)</span>`
+              : `<span class="badge amber">${ic('circle-alert', 11)}Unsupported</span>`
+          )}
+          ${srow(
+            'Version & Updates',
+            'When you deploy code to GitHub, the service worker detects changes in the background and prompts you to reload without interrupting ongoing work.',
+            PWA_STATE.updateAvailable
+              ? `<button class="btn btn-primary btn-sm" data-a="applyPwaUpdate">${ic('rotate-cw', 13)}Apply Update</button>`
+              : `<span class="badge green">${ic('check', 11)}Up to date</span>`
+          )}
+          ${srow(
+            'Data Protection Policy',
+            'User data (<code>gr8r-data.json</code>), backups, and attachments are strictly stored on your local drive and are never cached or intercepted by the service worker.',
+            `<span class="badge green">${ic('shield-check', 11)}Protected</span>`
+          )}
+        </div>
+      `
       );
     case 'database': {
       const sf = getStorageSettings();

@@ -461,8 +461,6 @@ export function meetingModal(m, H) {
 }
 
 export function newMeetingModal(m, H) {
-  const cal = calcomState();
-  const contacts = D().contacts || [];
   return `${H('Schedule New Meeting', 'Create a booking and automatically link/sync the attendee with People CRM.')}
   <form class="modal-b" data-submit="submitNewMeeting" style="gap:12px">
     <div class="field">

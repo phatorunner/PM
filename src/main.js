@@ -60,6 +60,7 @@ import { A } from './actions/actions.js';
 import { ROUTE_NAMES, render, go } from './shell/render.js';
 import { startCalcomPolling } from './features/calcom-sync.js';
 import { startStorageEngine } from './features/fs-storage.js';
+import { registerPwaServiceWorker } from './features/pwa.js';
 
 (function init() {
   document.documentElement.lang = 'en';
@@ -86,6 +87,9 @@ import { startStorageEngine } from './features/fs-storage.js';
 
   // Start local filesystem storage engine (reconnects handle, schedules recovery backups & daily snapshots)
   startStorageEngine();
+
+  // Register PWA service worker and listen for installation/updates
+  registerPwaServiceWorker();
 })();
 
 // Dev-only handle for debugging and screenshot tooling; stripped from production builds.

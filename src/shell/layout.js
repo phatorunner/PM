@@ -24,6 +24,7 @@ import { pageWsTimeline } from '../views/timeline.js';
 import { pageSettings } from '../pages/settings.js';
 import { pageStates, pageSystem } from '../pages/design-system.js';
 import { FS_STATUS } from '../features/fs-storage.js';
+import { PWA_STATE } from '../features/pwa.js';
 import { pageArchive } from '../features/archive.js';
 import { pageAgenda } from '../pages/agenda.js';
 import { pagePeople } from '../pages/people.js';
@@ -230,6 +231,9 @@ export function renderTopbar() {
     ${renderBrowserTabs()}
     <span class="sp"></span>
     ${(() => {
+      if (PWA_STATE.updateAvailable) {
+        return `<button class="pillbtn bordered" data-a="applyPwaUpdate" style="height:26px;font-size:11.5px;color:var(--accent);border-color:var(--accent);gap:5px" title="New update available! Click to reload safely."><span class="spin" style="display:inline-flex">${ic('rotate-cw', 12)}</span><span>Update available</span></button>`;
+      }
       if (FS_STATUS.state === 'saving') {
         return `<span class="pillbtn" style="height:26px;font-size:11.5px;color:var(--accent);gap:6px" title="Saving gr8r-data.json…"><span class="spin" style="display:inline-flex">${ic('loader-2', 12)}</span><span>Saving…</span></span>`;
       }
@@ -242,6 +246,7 @@ export function renderTopbar() {
       }
       return '';
     })()}
+    ${!PWA_STATE.isInstalled && PWA_STATE.installPrompt ? `<button class="ibtn" data-a="installApp" data-tip="Install Gr8r App" aria-label="Install app">${ic('download', 15)}</button>` : ''}
     <button class="topsearch" data-a="openPalette" aria-label="Search and commands">${ic('search', 14)}<span class="lbltxt">Search or jump to…</span><span class="kbd">${MOD}K</span></button>
     <button class="ibtn" data-a="go" data-r="notifications" data-tip="Notifications" aria-label="Notifications">${ic('bell', 16)}${D().notifs.some(n => !n.read) ? '<span style="position:absolute;top:6px;right:7px;width:7px;height:7px;border-radius:50%;background:var(--accent);box-shadow:0 0 0 2px var(--surface)"></span>' : ''}</button>
     <button class="btn btn-secondary btn-sm" data-a="pop" data-pop="create" aria-haspopup="menu" aria-label="Create new">${ic('plus', 14)}<span class="hide-m">New</span>${ic('chevron-down', 12, 'hide-m')}</button>

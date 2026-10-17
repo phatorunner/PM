@@ -1,9 +1,9 @@
 /* =====================================================================
    MEETINGS & CAL.COM INTEGRATION PAGE
    ===================================================================== */
-import { TODAY, WDL, diffD, esc, fmtDate, parse, relDate } from '../core/utils.js';
+import { WDL, esc, fmtDate, parse, relDate } from '../core/utils.js';
 import { ic } from '../core/icons.js';
-import { D, S, calcomState, meetingsList } from '../core/store.js';
+import { S, calcomState, meetingsList } from '../core/store.js';
 import { empty } from '../ui/helpers.js';
 
 export function pageMeetings() {

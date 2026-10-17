@@ -4,7 +4,7 @@
 import { D, calcomState } from '../core/store.js';
 import { mutate } from '../ui/toast.js';
 import { render } from '../shell/render.js';
-import { fmtDate, uid } from '../core/utils.js';
+import { fmtDate } from '../core/utils.js';
 
 const POLL_MS = 20 * 60 * 1000; // 20 minutes
 let _pollTimer = null;

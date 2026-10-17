@@ -5,7 +5,7 @@
 import { esc } from '../core/utils.js';
 import { ic } from '../core/icons.js';
 import { S } from '../core/store.js';
-import { go, render } from '../shell/render.js';
+import { render } from '../shell/render.js';
 import { A, IN, KEY } from '../actions/actions.js';
 
 export const AGENTS_LIST = [
