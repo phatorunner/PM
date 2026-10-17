@@ -234,13 +234,6 @@ export function renderTopbar() {
       if (PWA_STATE.updateAvailable) {
         return `<button class="pillbtn bordered" data-a="applyPwaUpdate" style="height:26px;font-size:11.5px;color:var(--accent);border-color:var(--accent);gap:5px" title="New update available! Click to reload safely."><span class="spin" style="display:inline-flex">${ic('rotate-cw', 12)}</span><span>Update available</span></button>`;
       }
-      if (FS_STATUS.state === 'saving') {
-        return `<span class="pillbtn" style="height:26px;font-size:11.5px;color:var(--accent);gap:6px" title="Saving gr8r-data.json…"><span class="spin" style="display:inline-flex">${ic('loader-2', 12)}</span><span>Saving…</span></span>`;
-      }
-      if (FS_STATUS.state === 'saved') {
-        const timeStr = FS_STATUS.lastSavedAt ? new Date(FS_STATUS.lastSavedAt).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit', second: '2-digit' }) : '';
-        return `<span class="pillbtn" style="height:26px;font-size:11.5px;color:var(--green);gap:5px" data-tip="Last saved to gr8r-data.json at ${timeStr}"><span style="color:var(--green)">${ic('check', 12)}</span><span class="hide-m">Saved ${timeStr}</span></span>`;
-      }
       if (FS_STATUS.state === 'error' || FS_STATUS.state === 'permission_needed') {
         return `<button class="pillbtn bordered" data-a="reconnectFolder" style="height:26px;font-size:11.5px;color:var(--red);border-color:var(--red);gap:5px" title="${esc(FS_STATUS.lastError || 'Permission needed to save')}; click to retry"><span style="color:var(--red)">${ic('circle-alert', 12)}</span><span>Save error (Retry)</span></button>`;
       }
