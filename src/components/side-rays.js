@@ -452,3 +452,4 @@ export function initSideRays(container, options = {}) {
   activeInstance = instance;
   return instance;
 }
+
