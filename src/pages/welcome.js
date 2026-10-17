@@ -64,10 +64,12 @@ export function pageWelcome() {
   const isPrayerLoading = PRAYER_STATE.isLoading;
   const isPrayerPlaying = PRAYER_STATE.isPlaying;
 
-  return `<div class="page flush" style="display:flex;flex-direction:column;height:100%;min-height:100%;position:relative;background:var(--bg)">
+  return `<div class="page flush" style="display:flex;flex-direction:column;height:100%;min-height:100%;position:relative;background:var(--bg);overflow:hidden">
+    <!-- SideRays Background Light Shimmer (React Bits) -->
+    <div id="welcome-rays" class="side-rays welcome-rays-bg" style="position:absolute;inset:0;width:100%;height:100%;pointer-events:none"></div>
 
     <!-- Centered Clean Linear-Style View -->
-    <div style="flex:1;display:flex;flex-direction:column;align-items:center;justify-content:center;padding:24px var(--gutter);max-width:760px;width:100%;margin:0 auto">
+    <div style="flex:1;display:flex;flex-direction:column;align-items:center;justify-content:center;padding:24px var(--gutter);max-width:760px;width:100%;margin:0 auto;position:relative;z-index:1">
       
       <!-- Prominent Rotating Bible Verse (YourVision API) -->
       <a

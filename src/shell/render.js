@@ -11,6 +11,7 @@ import { tlAfter } from '../views/timeline.js';
 import { renderLayer } from '../overlays/drawer.js';
 import { placePop } from '../overlays/popovers.js';
 import { renderAuth } from '../pages/auth.js';
+import { initSideRays } from '../components/side-rays.js';
 
 export const ROUTE_NAMES = {
   welcome: 'Welcome',
@@ -261,6 +262,21 @@ export function afterRender() {
   const pal = $('#pal-in');
   if (pal && document.activeElement !== pal && !S.ui.pop) pal.focus();
   if ((S.ui.route === 'project' && S.ui.params.tab === 'timeline') || S.ui.route === 'timeline') tlAfter();
+  if (S.ui.route === 'welcome') {
+    const raysEl = document.getElementById('welcome-rays');
+    if (raysEl) {
+      initSideRays(raysEl, {
+        rayColor1: '#FFC46B',
+        rayColor2: '#96c8ff',
+        origin: 'top-right',
+        speed: 2.5,
+        intensity: 2,
+        spread: 2,
+        density: 5,
+        followMouse: true,
+      });
+    }
+  }
 }
 /* Headline numbers count up once when a dashboard is entered. */
 export function countUp() {
