@@ -62,28 +62,6 @@ export function pageHome() {
     }
   }
 
-  // Ensure an imminent meeting is available to show the timer component
-  if (!imminentMeeting) {
-    const todayStr = new Date().toISOString().slice(0, 10);
-    const d = new Date(now + 12 * 60 * 1000);
-    const timeStr = `${String(d.getHours()).padStart(2, '0')}:${String(d.getMinutes()).padStart(2, '0')}`;
-    imminentMeeting = {
-      id: 'mock_imminent_1',
-      title: 'Product Strategy & Vision Review',
-      date: todayStr,
-      time: timeStr,
-      duration: 30,
-      personName: 'Sarah Jenkins',
-      personTitle: 'Head of Product',
-      personCompany: 'Stripe',
-      location: 'Google Meet',
-      meetUrl: 'https://meet.google.com/abc-defg-hij',
-      source: 'calcom',
-      notes: 'Quarterly fintech product roadmap review and AI workflow capabilities showcase.',
-    };
-    imminentDiffMins = 12;
-  }
-
 
   return `<div class="page">
     <div class="ph"><div><h1>${greet}, ${esc(S.prefs.name.split(' ')[0])}</h1><p><span class="num">${WDL[TODAY.getDay()]}, ${MONL[TODAY.getMonth()]} ${TODAY.getDate()}</span> · Here's what's happening across your workspace.</p></div>
