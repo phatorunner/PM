@@ -47,11 +47,11 @@ export async function playDailyMorningPrayer(onStateChange) {
 
   try {
     // -------------------------------------------------------------
-    // STEP 1: Have Gemini write a deep, spiritually wise morning prayer
+    // STEP 1: Have Gemini 3.8 Flash write a full, deep morning prayer (60-100s)
     // -------------------------------------------------------------
     const textEndpoint = `https://generativelanguage.googleapis.com/v1beta/models/gemini-3.8-flash:generateContent?key=${apiKey}`;
     const textPrompt =
-      'Write a deep, spiritually wise, grounding, and heartfelt Christian morning prayer for today. The tone must be calm, reverent, masculine, and spiritually mature. It should take about 60 to 90 seconds to speak aloud (around 130-180 words). Output ONLY the prayer text itself. Do not include any title, greeting to the user, introduction, quotation marks, or stage directions.';
+      'Write a deep, spiritually wise, grounding, and heartfelt Christian morning prayer. The prayer must be substantive and comprehensive, taking between 60 to 100 seconds to read aloud slowly and reverently (between 160 and 220 words). Touch on wisdom for the day’s work, stillness of mind, protection from distraction, courage under trial, and walking with integrity. Output STRICTLY the prayer words spoken aloud. Do NOT include any intro, title, metadata, quotation marks, or stage notes.';
 
     const textRes = await fetch(textEndpoint, {
       method: 'POST',
@@ -60,26 +60,39 @@ export async function playDailyMorningPrayer(onStateChange) {
         contents: [{ parts: [{ text: textPrompt }] }],
         generationConfig: {
           temperature: 0.7,
-          maxOutputTokens: 500,
+          maxOutputTokens: 1000,
         },
       }),
     });
 
-    let prayerScript = '';
-    if (textRes.ok) {
-      const textData = await textRes.json();
-      prayerScript = textData.candidates?.[0]?.content?.parts?.[0]?.text?.trim() || '';
+    if (!textRes.ok) {
+      const errText = await textRes.text();
+      let msg = `Text generation HTTP ${textRes.status}`;
+      try {
+        const parsed = JSON.parse(errText);
+        msg = parsed.error?.message || msg;
+      } catch {
+        // Use raw error
+      }
+      throw new Error(msg);
     }
 
-    // High quality spiritually wise fallback script if text generation fails
+    const textData = await textRes.json();
+    let prayerScript = textData.candidates?.[0]?.content?.parts?.[0]?.text?.trim() || '';
+
+    // Clean any unwanted quotation marks, headers, or markdown
+    prayerScript = prayerScript
+      .replace(/^(["'`]|#+\s*|Prayer:?\s*)+/i, '')
+      .replace(/(["'`])+$/i, '')
+      .trim();
+
     if (!prayerScript) {
-      prayerScript =
-        'Heavenly Father, as the dawn breaks and this new day begins, I stand before You with a quiet heart and a steady spirit. Thank You for the gift of life, for breath in my lungs, and for Your steadfast love that is renewed every morning. Grant me wisdom to navigate the challenges ahead, courage to act justly, and patience to lead and serve with humility. Anchor my thoughts in Your truth, protect my mind from distraction and anxiety, and strengthen my hands for the work You have set before me. May everything I build and every word I speak honor Your name and bless those around me. Guide my steps today in strength, peace, and steadfast faith. In Jesus’ name, Amen.';
+      throw new Error('No prayer text was generated');
     }
 
     // -------------------------------------------------------------
-    // STEP 2: Send the written prayer script to TTS to speak out loud
-    // using Fenrir (deep, calm, masculine voice profile)
+    // STEP 2: Send the full prayer script to TTS
+    // Voice: 'Orus' (deep, firm, masculine, resonant male profile)
     // -------------------------------------------------------------
     const ttsEndpoint = `https://generativelanguage.googleapis.com/v1beta/models/gemini-3.8-flash-tts:generateContent?key=${apiKey}`;
     const ttsPayload = {
@@ -93,7 +106,7 @@ export async function playDailyMorningPrayer(onStateChange) {
         speechConfig: {
           voiceConfig: {
             prebuiltVoiceConfig: {
-              voiceName: 'Fenrir',
+              voiceName: 'Orus',
             },
           },
         },
@@ -108,7 +121,7 @@ export async function playDailyMorningPrayer(onStateChange) {
 
     if (!ttsRes.ok) {
       const errText = await ttsRes.text();
-      let msg = `HTTP ${ttsRes.status}`;
+      let msg = `TTS HTTP ${ttsRes.status}`;
       try {
         const parsed = JSON.parse(errText);
         msg = parsed.error?.message || msg;
