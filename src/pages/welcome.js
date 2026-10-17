@@ -13,6 +13,7 @@ export const WELCOME_EXAMPLES = [
     id: 'morning-prayer',
     title: 'Morning prayer',
     desc: 'Listen to an uplifting, peaceful prayer generated with Gemini AI',
+    image: '/morning-prayer.jpg',
     prompt: 'Heavenly Father, thank You for the gift of today. Guide my thoughts, bless my hands, and grant me wisdom and diligence in every task I set out to accomplish today. Amen.',
     action: 'prayer',
   },
