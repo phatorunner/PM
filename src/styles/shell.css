@@ -747,3 +747,49 @@ h3.sub {
   padding: 0 !important;
   resize: none !important;
 }
+
+/* Agent Rotating Bible Verse Headline (YourVision API) */
+.agent-verse-headline {
+  display: block;
+  text-decoration: none;
+  text-align: center;
+  max-width: 640px;
+  width: 100%;
+  margin: 0 auto 32px;
+  padding: 8px 12px;
+  border-radius: 12px;
+  cursor: pointer;
+  transition: opacity var(--dur), transform var(--dur), background var(--dur);
+}
+.agent-verse-headline:hover {
+  opacity: 0.92;
+  transform: translateY(-1px);
+}
+.agent-verse-headline:focus-visible {
+  outline: 2px solid var(--accent);
+  outline-offset: 4px;
+}
+.agent-verse-headline h1 {
+  font-size: var(--fs-2xl);
+  font-weight: 600;
+  letter-spacing: -0.022em;
+  color: var(--text);
+  line-height: 1.35;
+  margin: 0 0 10px;
+  text-wrap: balance;
+  transition: color var(--dur);
+}
+.agent-verse-headline:hover h1 {
+  color: var(--accent);
+}
+.agent-verse-ref {
+  font-size: var(--fs-sm);
+  font-weight: 500;
+  letter-spacing: 0.05em;
+  text-transform: uppercase;
+  color: var(--text-3);
+  transition: color var(--dur);
+}
+.agent-verse-headline:hover .agent-verse-ref {
+  color: var(--text-2);
+}

@@ -35,7 +35,7 @@ export const DEFAULT_PREFS = {
   lang: 'English (US)',
   tz: '(GMT-07:00) Pacific Time',
   motion: 'system',
-  home: 'home',
+  home: 'agents',
   openTasks: 'drawer',
   name: 'Phato',
   title: 'Workspace Owner',
@@ -54,6 +54,9 @@ export function load() {
   return null;
 }
 export const saved = load();
+if (saved?.prefs) {
+  if (saved.prefs.home === 'home' || !saved.prefs.home) saved.prefs.home = 'agents';
+}
 if (saved?.prefs?.name === 'Tanjim Islam') saved.prefs.name = 'Phato';
 if (saved?.data?.members) {
   saved.data.members.forEach(m => {

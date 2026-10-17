@@ -61,6 +61,7 @@ import { ROUTE_NAMES, render, go } from './shell/render.js';
 import { startCalcomPolling } from './features/calcom-sync.js';
 import { startStorageEngine } from './features/fs-storage.js';
 import { registerPwaServiceWorker } from './features/pwa.js';
+import { startBibleVerseRotation } from './features/bible-verse.js';
 
 (function init() {
   document.documentElement.lang = 'en';
@@ -78,7 +79,7 @@ import { registerPwaServiceWorker } from './features/pwa.js';
   else {
     const activeTab = S.ui.browserTabs?.find(t => t.id === S.ui.activeTabId);
     if (activeTab) go(activeTab.route, activeTab.params);
-    else go(S.prefs.home || 'home');
+    else go(S.prefs.home || 'agents');
   }
 
   // Auto-start Cal.com polling if settings were previously saved
@@ -90,6 +91,9 @@ import { registerPwaServiceWorker } from './features/pwa.js';
 
   // Register PWA service worker and listen for installation/updates
   registerPwaServiceWorker();
+
+  // Start hourly Bible verse rotation service
+  startBibleVerseRotation();
 })();
 
 // Dev-only handle for debugging and screenshot tooling; stripped from production builds.

@@ -614,6 +614,7 @@ export function settingsBody(sec, title) {
           sel(
             'home',
             [
+              ['agents', 'Agent'],
               ['home', 'Home'],
               ['mytasks', 'My Tasks'],
               ['inbox', 'Inbox'],
