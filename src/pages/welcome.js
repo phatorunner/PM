@@ -21,6 +21,7 @@ export const WELCOME_EXAMPLES = [
     id: 'strength-guidance',
     title: 'Strength and focus',
     desc: 'Seek peace and clarity amidst deadlines and complex tasks',
+    image: '/strength-focus.jpg',
     prompt: 'Lord, grant me strength when weary, clarity in decision-making, and patience through unexpected hurdles.',
     action: 'prayer-text',
   },
