@@ -559,13 +559,17 @@ h3.sub {
   overflow: hidden;
   border-radius: var(--r-lg);
   background: #000000;
-  border: none;
-  box-shadow: 0 16px 40px -10px rgba(0, 0, 0, 0.45);
+  border: 1px solid var(--border);
+  box-shadow: var(--shadow-sm);
   padding: 18px;
   display: flex;
   flex-direction: column;
   gap: 16px;
   isolation: isolate;
+  transition: border-color var(--dur);
+}
+.imminent-meeting-card:hover {
+  border-color: var(--border-strong);
 }
 .imminent-bg {
   display: none;
