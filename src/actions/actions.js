@@ -2264,7 +2264,7 @@ export const EMAIL_RE = /^\S+@\S+\.\S+$/;
 export function enterApp(msg) {
   S.ui.auth = null;
   S.ui.errors = {};
-  go(S.prefs.home || 'agents');
+  go(S.prefs.home || 'welcome');
   toast(msg);
 }
 A.doLogin = () => {

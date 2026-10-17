@@ -80,7 +80,7 @@ import { startBibleVerseRotation } from './features/bible-verse.js';
   else {
     const activeTab = S.ui.browserTabs?.find(t => t.id === S.ui.activeTabId);
     if (activeTab) go(activeTab.route, activeTab.params);
-    else go(S.prefs.home || 'agents');
+    else go(S.prefs.home || 'welcome');
   }
 
   // Auto-start Cal.com polling if settings were previously saved

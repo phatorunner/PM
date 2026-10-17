@@ -37,7 +37,7 @@ export const DEFAULT_PREFS = {
   lang: 'English (US)',
   tz: '(GMT-07:00) Pacific Time',
   motion: 'system',
-  home: 'agents',
+  home: 'welcome',
   openTasks: 'drawer',
   name: 'Phato',
   title: 'Workspace Owner',
@@ -57,7 +57,7 @@ export function load() {
 }
 export const saved = load();
 if (saved?.prefs) {
-  if (saved.prefs.home === 'home' || !saved.prefs.home) saved.prefs.home = 'agents';
+  if (saved.prefs.home === 'home' || saved.prefs.home === 'agents' || !saved.prefs.home) saved.prefs.home = 'welcome';
 }
 if (saved?.prefs?.name === 'Tanjim Islam') saved.prefs.name = 'Phato';
 if (saved?.data?.members) {
