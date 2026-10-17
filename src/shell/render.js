@@ -12,6 +12,7 @@ import { renderLayer } from '../overlays/drawer.js';
 import { placePop } from '../overlays/popovers.js';
 import { renderAuth } from '../pages/auth.js';
 import { initSideRays } from '../components/side-rays.js';
+import { initPixelBlast } from '../components/pixel-blast.js';
 
 export const ROUTE_NAMES = {
   welcome: 'Welcome',
@@ -274,6 +275,26 @@ export function afterRender() {
         spread: 2,
         density: 5,
         followMouse: true,
+      });
+    }
+  }
+  if (S.ui.route === 'home') {
+    const blastEl = document.getElementById('imminent-pixel-blast');
+    if (blastEl) {
+      initPixelBlast(blastEl, {
+        variant: 'square',
+        pixelSize: 3,
+        color: '#89001a',
+        patternScale: 2,
+        patternDensity: 1,
+        softness: 0.6,
+        glow: 0.4,
+        twinkle: 0.25,
+        drift: 0.2,
+        hoverEffect: 'reveal',
+        enableRipples: true,
+        edgeFade: 0.25,
+        accentColor: '#000000',
       });
     }
   }
