@@ -45,16 +45,19 @@ export async function playDailyMorningPrayer(onStateChange) {
   PRAYER_STATE.isLoading = true;
   onStateChange?.(PRAYER_STATE);
 
-  const promptText =
-    'Generate a completely unique, uplifting, and peaceful morning prayer. The tone should be calm and grounding. Keep the duration between 45 to 60 seconds when spoken. Do not include any introductory or concluding meta-text.';
-
   const payload = {
+    systemInstruction: {
+      parts: [
+        {
+          text: 'You are speaking a morning prayer aloud. Do not read instructions, meta-text, stage directions, or introductions. Speak only the heartfelt prayer words directly with calm reverence.',
+        },
+      ],
+    },
     contents: [
       {
-        role: 'user',
         parts: [
           {
-            text: promptText,
+            text: 'Give me a deep, unique, and spiritually comforting morning prayer for today.',
           },
         ],
       },
@@ -64,7 +67,7 @@ export async function playDailyMorningPrayer(onStateChange) {
       speechConfig: {
         voiceConfig: {
           prebuiltVoiceConfig: {
-            voiceName: 'Puck',
+            voiceName: 'Fenrir',
           },
         },
       },
