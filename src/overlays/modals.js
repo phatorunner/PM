@@ -9,6 +9,7 @@ import { teamModal } from '../features/teams.js';
 import { contactDetailModal } from '../pages/people.js';
 
 export function openModal(m) {
+  clearTimeout(closeModal._t);
   S.ui.modalOpeners = S.ui.modalOpeners || [];
   S.ui.modalOpeners[S.ui.modals.length] = S.ui.popOpener && S.ui.pop ? S.ui.popOpener : focusKey(document.activeElement);
   S.ui.modals.push(m);
@@ -22,6 +23,27 @@ export function openModal(m) {
   }, 30);
 }
 export function closeModal() {
+  const allModals = $$('.modal');
+  const allScrims = $$('.scrim');
+  const lastModal = allModals[allModals.length - 1];
+  const lastScrim = allScrims[allScrims.length - 1];
+
+  if (lastModal && !lastModal.classList.contains('leave')) {
+    lastModal.classList.remove('enter');
+    lastModal.classList.add('leave');
+    if (lastScrim) {
+      lastScrim.classList.remove('enter');
+      lastScrim.classList.add('leave');
+    }
+    clearTimeout(closeModal._t);
+    closeModal._t = setTimeout(() => {
+      S.ui.modals.pop();
+      S.ui.pop = null;
+      render();
+    }, 180);
+    return;
+  }
+  clearTimeout(closeModal._t);
   S.ui.modals.pop();
   S.ui.pop = null;
   render();
