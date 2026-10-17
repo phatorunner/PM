@@ -106,7 +106,7 @@ export function settingsBody(sec, title) {
       );
     case 'app':
       return (
-        H('Install Gr8r Studio as a standalone desktop app on your device.') +
+        H('Install HanhPM as a standalone desktop app on your device.') +
         `
         <!-- Installation Status Banner -->
         ${(() => {
@@ -115,7 +115,7 @@ export function settingsBody(sec, title) {
               ${ic('circle-check', 16)}
               <div style="line-height:1.5">
                 <b>Installed & Running in Standalone Window</b><br>
-                Gr8r Studio is running as an installed Progressive Web App. Offline app caching and native desktop integration are active.
+                HanhPM is running as an installed Progressive Web App. Offline app caching and native desktop integration are active.
               </div>
             </div>`;
           }
@@ -124,7 +124,7 @@ export function settingsBody(sec, title) {
               ${ic('download', 16)}
               <div style="line-height:1.5;flex:1">
                 <b>Ready to Install</b><br>
-                Install Gr8r Studio on Windows via Chrome or Microsoft Edge for a dedicated taskbar icon and standalone workspace window.
+                Install HanhPM on Windows via Chrome or Microsoft Edge for a dedicated taskbar icon and standalone workspace window.
               </div>
               <button class="btn btn-primary btn-sm" data-a="installApp">${ic('download', 13)}Install App</button>
             </div>`;
@@ -133,7 +133,7 @@ export function settingsBody(sec, title) {
             ${ic('info', 16)}
             <div style="line-height:1.5">
               <b>Browser-Powered Standalone PWA</b><br>
-              Gr8r Studio is powered by standard Web and File System APIs. You can install it directly through your browser without heavy runtimes like Electron.
+              HanhPM is powered by standard Web and File System APIs. You can install it directly through your browser without heavy runtimes like Electron.
             </div>
           </div>`;
         })()}
@@ -142,7 +142,7 @@ export function settingsBody(sec, title) {
         <div class="sblock" style="margin-top:0">
           <h2>Application Installation</h2>
           <p class="muted" style="margin:4px 0 16px;font-size:var(--fs-sm);line-height:1.55">
-            Running Gr8r Studio as an installed PWA gives you a distraction-free window, full keyboard shortcuts, and instant launch without browser tabs.
+            Running HanhPM as an installed PWA gives you a distraction-free window, full keyboard shortcuts, and instant launch without browser tabs.
           </p>
 
           <div class="panel" style="padding:16px;display:flex;flex-direction:column;gap:14px;background:var(--surface)">
@@ -152,7 +152,7 @@ export function settingsBody(sec, title) {
               </span>
               <div class="grow" style="min-width:0">
                 <div style="font-weight:600;font-size:14px;display:flex;align-items:center;gap:8px">
-                  <span>${PWA_STATE.isInstalled ? 'Gr8r Studio is Installed' : 'Install Gr8r Studio'}</span>
+                  <span>${PWA_STATE.isInstalled ? 'HanhPM is Installed' : 'Install HanhPM'}</span>
                   ${PWA_STATE.isInstalled
                     ? `<span class="badge green">${ic('check', 11)}Standalone</span>`
                     : PWA_STATE.installPrompt
@@ -193,7 +193,7 @@ export function settingsBody(sec, title) {
                 ${ic('globe', 16)}<span>Google Chrome on Windows</span>
               </div>
               <p class="faint" style="margin:6px 0 0;font-size:12.5px;line-height:1.5">
-                Click the <b>Install Gr8r Studio</b> icon (desktop with down-arrow) on the right side of the URL address bar, or click <b>Menu (⋮) &gt; Save and share &gt; Install Gr8r Studio…</b>.
+                Click the <b>Install HanhPM</b> icon (desktop with down-arrow) on the right side of the URL address bar, or click <b>Menu (⋮) &gt; Save and share &gt; Install HanhPM…</b>.
               </p>
             </div>
 
@@ -202,7 +202,7 @@ export function settingsBody(sec, title) {
                 ${ic('compass', 16)}<span>Microsoft Edge on Windows</span>
               </div>
               <p class="faint" style="margin:6px 0 0;font-size:12.5px;line-height:1.5">
-                Click the <b>App available</b> icon (three squares and a plus) in the address bar, or click <b>Menu (…) &gt; Apps &gt; Install Gr8r Studio</b>.
+                Click the <b>App available</b> icon (three squares and a plus) in the address bar, or click <b>Menu (…) &gt; Apps &gt; Install HanhPM</b>.
               </p>
             </div>
           </div>
@@ -213,7 +213,7 @@ export function settingsBody(sec, title) {
           <h2>Offline App Shell & Update Flow</h2>
           ${srow(
             'Offline App Shell',
-            'Service worker caches code, styles, and static assets so Gr8r Studio launches immediately even without an active internet connection.',
+            'Service worker caches code, styles, and static assets so HanhPM launches immediately even without an active internet connection.',
             PWA_STATE.isSupported
               ? `<span class="badge green">${ic('check', 11)}Active (sw.js)</span>`
               : `<span class="badge amber">${ic('circle-alert', 11)}Unsupported</span>`
@@ -285,7 +285,7 @@ export function settingsBody(sec, title) {
         <div class="sblock" style="margin-top:0">
           <h2>Local Folder Storage</h2>
           <p class="muted" style="margin:4px 0 16px;font-size:var(--fs-sm);line-height:1.55">
-            Chromium File System Access API connects Gr8r Studio directly to your local computer. All projects, tasks, phases, settings, and file attachments are persisted in this folder.
+            Chromium File System Access API connects HanhPM directly to your local computer. All projects, tasks, phases, settings, and file attachments are persisted in this folder.
           </p>
 
           <!-- Folder Card / Status -->
@@ -380,7 +380,7 @@ export function settingsBody(sec, title) {
     }
     case 'appearance':
       return (
-        H('Customize how Gr8r looks on this device.') +
+        H('Customize how HanhPM looks on this device.') +
         `
       <div class="sblock" style="margin-top:0"><h2>Theme</h2><div class="themecards" style="margin-top:12px" role="radiogroup" aria-label="Theme">${[
         ['dark', 'Dark (Default)'],
@@ -610,7 +610,7 @@ export function settingsBody(sec, title) {
         H('Personal defaults for how you work.') +
         srow(
           'Open on launch',
-          'The page you see when Gr8r opens.',
+          'The page you see when HanhPM opens.',
           sel(
             'home',
             [

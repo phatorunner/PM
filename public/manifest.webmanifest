@@ -1,7 +1,7 @@
 {
-  "name": "Gr8r Studio",
-  "short_name": "Gr8r",
-  "description": "Gr8r Studio — a calm, structured project management workspace.",
+  "name": "HanhPM",
+  "short_name": "HanhPM",
+  "description": "HanhPM — a calm, structured project management workspace.",
   "id": "./",
   "start_url": "./",
   "scope": "./",

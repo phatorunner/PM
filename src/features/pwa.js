@@ -49,7 +49,7 @@ export function registerPwaServiceWorker() {
     PWA_STATE.isInstalled = true;
     PWA_STATE.installPrompt = null;
     toast({
-      text: 'Gr8r Studio installed successfully! You can launch it from your desktop or start menu.',
+      text: 'HanhPM installed successfully! You can launch it from your desktop or start menu.',
       type: 'ok',
       duration: 6000,
     });
@@ -114,7 +114,7 @@ function notifyUpdateAvailable(worker) {
   render();
 
   toast({
-    text: 'A new version of Gr8r Studio is available. Reload when you are ready to update.',
+    text: 'A new version of HanhPM is available. Reload when you are ready to update.',
     type: 'info',
     actionText: 'Update Now',
     action: () => applyPwaUpdate(),

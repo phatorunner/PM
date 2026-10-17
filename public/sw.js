@@ -1,5 +1,5 @@
 /* =====================================================================
-   Gr8r Studio — Progressive Web App Service Worker
+   HanhPM — Progressive Web App Service Worker
    - Precaches the application shell and static assets for instant offline boot.
    - Network-first strategy for navigation requests with fallback to precached app shell.
    - Stale-while-revalidate / cache-first strategy for immutable hashed assets.

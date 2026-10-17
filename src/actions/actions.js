@@ -3369,7 +3369,7 @@ A.installApp = async () => {
   const installed = await promptInstallApp();
   if (!installed) {
     // If browser didn't prompt, show informational modal or toast
-    toast('Use your browser’s address bar install icon (App available) or menu > Apps > Install Gr8r Studio', { kind: 'info', ms: 5000 });
+    toast('Use your browser’s address bar install icon (App available) or menu > Apps > Install HanhPM', { kind: 'info', ms: 5000 });
   }
 };
 A.applyPwaUpdate = () => applyPwaUpdate();
