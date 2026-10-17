@@ -442,8 +442,8 @@ export function settingsBody(sec, title) {
           )}
           ${srow(
             'Model & Endpoint',
-            'Target model architecture configured for native MP3 audio output.',
-            `<span class="mono" style="font-size:12px;color:var(--text)">gemini-2.5-flash (Puck voice)</span>`
+            'Target model architecture configured for native audio output.',
+            `<span class="mono" style="font-size:12px;color:var(--text)">gemini-3.8-flash (Puck voice)</span>`
           )}
         </div>
       `
