@@ -60,7 +60,7 @@ export async function playDailyMorningPrayer(onStateChange) {
       },
     ],
     generationConfig: {
-      responseMimeType: 'audio/mp3',
+      responseModalities: ['AUDIO'],
       speechConfig: {
         voiceConfig: {
           prebuiltVoiceConfig: {
@@ -96,14 +96,16 @@ export async function playDailyMorningPrayer(onStateChange) {
 
     const data = await res.json();
 
-    // Extract Base64 string from candidates.content.parts.inlineData.data
+    // Extract Base64 audio string and mimeType from candidates.content.parts.inlineData
     const candidate = data.candidates?.[0];
     const parts = candidate?.content?.parts || [];
     let base64Audio = null;
+    let mimeType = 'audio/mp3';
 
     for (const part of parts) {
       if (part.inlineData?.data) {
         base64Audio = part.inlineData.data;
+        if (part.inlineData.mimeType) mimeType = part.inlineData.mimeType;
         break;
       }
     }
@@ -112,8 +114,8 @@ export async function playDailyMorningPrayer(onStateChange) {
       throw new Error('No audio data returned in response payload');
     }
 
-    // Play native audio
-    const audioSrc = `data:audio/mp3;base64,${base64Audio}`;
+    // Play native audio with returned mimeType (supports audio/wav, audio/mp3, etc.)
+    const audioSrc = `data:${mimeType};base64,${base64Audio}`;
     const audio = new Audio(audioSrc);
     PRAYER_STATE.currentAudio = audio;
 
