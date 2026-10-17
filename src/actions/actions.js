@@ -2098,6 +2098,22 @@ A.saveWorkspace = () => {
       toast('Workspace settings saved');
   });
 };
+A.saveGeminiApiKey = () => {
+  const input = $('#gemini-api-key');
+  const key = (input?.value || '').trim();
+  loadingBtn('gemini-key-save', 400, () => {
+    S.prefs.geminiApiKey = key;
+    save();
+    render();
+    toast(key ? 'Gemini API key saved' : 'Gemini API key cleared');
+  });
+};
+A.clearGeminiApiKey = () => {
+  S.prefs.geminiApiKey = '';
+  save();
+  render();
+  toast('Gemini API key removed');
+};
 A.delWorkspace = () =>
   confirmDlg({
     title: `Delete ${D().ws.name}?`,

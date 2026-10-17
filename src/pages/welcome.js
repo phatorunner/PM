@@ -5,12 +5,14 @@ import { esc } from '../core/utils.js';
 import { ic } from '../core/icons.js';
 import { A } from '../actions/actions.js';
 import { getActiveBibleVerse } from '../features/bible-verse.js';
+import { PRAYER_STATE, playDailyMorningPrayer } from '../features/gemini-prayer.js';
+import { render } from '../shell/render.js';
 
 export const WELCOME_EXAMPLES = [
   {
     id: 'morning-prayer',
     title: 'Start with morning prayer',
-    desc: 'Begin your day dedicating your work and focus to the Lord',
+    desc: 'Listen to an uplifting, peaceful prayer generated with Gemini AI',
     icon: 'sunrise',
     prompt: 'Heavenly Father, thank You for the gift of today. Guide my thoughts, bless my hands, and grant me wisdom and diligence in every task I set out to accomplish today. Amen.',
     action: 'prayer',
@@ -29,7 +31,7 @@ export const WELCOME_EXAMPLES = [
     desc: 'Seek peace and clarity amidst deadlines and complex tasks',
     icon: 'shield',
     prompt: 'Lord, grant me strength when weary, clarity in decision-making, and patience through unexpected hurdles.',
-    action: 'prayer',
+    action: 'prayer-text',
   },
   {
     id: 'gratitude-journal',
@@ -37,7 +39,7 @@ export const WELCOME_EXAMPLES = [
     desc: 'Give thanks for victories, answered prayers, and growth today',
     icon: 'sunset',
     prompt: 'Thank You Lord for walking with me through this day and blessing the fruit of our labor.',
-    action: 'prayer',
+    action: 'prayer-text',
   },
   {
     id: 'work-excellence',
@@ -59,6 +61,8 @@ export const WELCOME_EXAMPLES = [
 
 export function pageWelcome() {
   const verse = getActiveBibleVerse();
+  const isPrayerLoading = PRAYER_STATE.isLoading;
+  const isPrayerPlaying = PRAYER_STATE.isPlaying;
 
   return `<div class="page flush" style="display:flex;flex-direction:column;height:100%;min-height:100%;position:relative;background:var(--bg)">
 
@@ -81,29 +85,53 @@ export function pageWelcome() {
       <!-- 6 Curated Example Options / Devotional Cards -->
       <div style="width:100%;margin-bottom:12px;display:flex;align-items:center;justify-content:space-between">
         <span class="faint" style="font-size:12px;font-weight:500;letter-spacing:0.02em">Get started with prayer and reflection</span>
+        ${
+          isPrayerPlaying
+            ? `<span class="badge accent" style="display:inline-flex;align-items:center;gap:5px;font-size:11px">${ic('volume-2', 12)}Playing Morning Prayer</span>`
+            : ''
+        }
       </div>
 
       <div style="display:grid;grid-template-columns:repeat(3, 1fr);gap:12px;width:100%">
-        ${WELCOME_EXAMPLES.map(
-          ex => `
+        ${WELCOME_EXAMPLES.map(ex => {
+          const isMorningPrayer = ex.id === 'morning-prayer';
+          const cardLoading = isMorningPrayer && isPrayerLoading;
+          const cardPlaying = isMorningPrayer && isPrayerPlaying;
+
+          let displayTitle = ex.title;
+          let displayDesc = ex.desc;
+          let displayIcon = ex.icon;
+
+          if (cardLoading) {
+            displayTitle = 'Preparing prayer…';
+            displayDesc = 'Generating peaceful audio via Gemini AI Studio…';
+            displayIcon = 'loader-2';
+          } else if (cardPlaying) {
+            displayTitle = 'Playing Morning Prayer';
+            displayDesc = 'Listening to today’s peaceful morning prayer…';
+            displayIcon = 'volume-2';
+          }
+
+          return `
           <div
-            class="example-card"
+            class="example-card ${cardLoading ? 'is-loading' : ''} ${cardPlaying ? 'is-playing' : ''}"
             data-a="openWelcomePrompt"
             data-id="${esc(ex.id)}"
             role="button"
             tabindex="0"
-            style="background:var(--surface);border:1px solid var(--border);border-radius:10px;padding:16px;cursor:pointer;display:flex;flex-direction:column;gap:8px;text-align:left;transition:background var(--dur), border-color var(--dur);box-shadow:var(--shadow-sm)"
-            onmouseover="this.style.borderColor='var(--border-strong)';this.style.background='var(--surface-2)'"
-            onmouseout="this.style.borderColor='var(--border)';this.style.background='var(--surface)'"
+            aria-disabled="${cardLoading}"
+            style="background:var(--surface);border:1px solid ${cardPlaying ? 'var(--accent)' : 'var(--border)'};border-radius:10px;padding:16px;cursor:${cardLoading ? 'wait' : 'pointer'};display:flex;flex-direction:column;gap:8px;text-align:left;transition:background var(--dur), border-color var(--dur);box-shadow:var(--shadow-sm);opacity:${cardLoading ? '0.75' : '1'};pointer-events:${cardLoading ? 'none' : 'auto'}"
+            onmouseover="if(!${cardLoading}){this.style.borderColor='var(--border-strong)';this.style.background='var(--surface-2)'}"
+            onmouseout="if(!${cardLoading}){this.style.borderColor='${cardPlaying ? 'var(--accent)' : 'var(--border)'}';this.style.background='var(--surface)'}"
           >
             <div style="color:var(--accent);display:flex;align-items:center;gap:6px">
-              ${ic(ex.icon, 16)}
+              <span class="${cardLoading ? 'spin' : ''}" style="display:inline-flex">${ic(displayIcon, 16)}</span>
             </div>
-            <div style="font-size:13.5px;font-weight:600;color:var(--text);line-height:1.3">${esc(ex.title)}</div>
-            <div class="faint" style="font-size:11.5px;line-height:1.4">${esc(ex.desc)}</div>
+            <div style="font-size:13.5px;font-weight:600;color:var(--text);line-height:1.3">${esc(displayTitle)}</div>
+            <div class="faint" style="font-size:11.5px;line-height:1.4">${esc(displayDesc)}</div>
           </div>
-        `,
-        ).join('')}
+        `;
+        }).join('')}
       </div>
 
     </div>
@@ -111,15 +139,22 @@ export function pageWelcome() {
 }
 
 // Action handler for clicking welcome prompt cards
-A.openWelcomePrompt = el => {
+A.openWelcomePrompt = async el => {
   const item = WELCOME_EXAMPLES.find(x => x.id === el.dataset.id);
   if (!item) return;
-  // If user wants to open the Bible verse online or reflect
+
+  if (item.id === 'morning-prayer') {
+    // Generate and play audio via Gemini 2.5 Flash
+    await playDailyMorningPrayer(() => render());
+    return;
+  }
+
+  // If user wants to open the Bible verse online
   if (item.action === 'verse') {
     const verse = getActiveBibleVerse();
     if (verse?.url) window.open(verse.url, '_blank', 'noopener,noreferrer');
   } else {
-    // Navigate to agent or show inspiration toast
+    // Navigate to new task or modal
     A.newTask({ dataset: { title: item.title } });
   }
 };

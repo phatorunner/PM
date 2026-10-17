@@ -18,6 +18,7 @@ export const SET_NAV = [
       ['workspace', 'Workspace', 'building-2'],
       ['app', 'Install & App', 'download'],
       ['database', 'Database', 'database'],
+      ['api', 'API', 'key-round'],
       ['appearance', 'Appearance', 'palette'],
       ['sidebar', 'Sidebar', 'panel-left'],
       ['language', 'Language', 'languages'],
@@ -373,6 +374,76 @@ export function settingsBody(sec, title) {
             hasFolder
               ? `<span class="mono" style="font-size:11.5px;color:var(--accent)">${esc(sf.name)}/attachments/</span>`
               : `<span class="faint">Folder not linked</span>`
+          )}
+        </div>
+      `
+      );
+    }
+    case 'api': {
+      const geminiKey = S.prefs.geminiApiKey || '';
+      const hasEnvKey = !!import.meta.env.VITE_GEMINI_API_KEY;
+      return (
+        H('Configure API keys for AI audio generation, prayer, and third-party integrations.') +
+        `
+        <div class="sblock" style="margin-top:0">
+          <h2>Google AI Studio / Gemini API</h2>
+          <p class="faint" style="font-size:13px;line-height:1.5;margin:4px 0 16px">
+            Used by the <b>Daily Morning Prayer</b> feature to generate high quality speech using the multimodal Gemini 2.5 Flash API with the Puck voice.
+          </p>
+
+          <form data-submit="saveGeminiApiKey" style="max-width:540px;display:flex;flex-direction:column;gap:14px">
+            <div class="field">
+              <label class="label" for="gemini-api-key">Gemini API Key</label>
+              <div class="row" style="gap:8px">
+                <input
+                  type="password"
+                  class="input"
+                  id="gemini-api-key"
+                  placeholder="AIzaSy…"
+                  value="${esc(geminiKey)}"
+                  autocomplete="off"
+                  spellcheck="false"
+                  style="font-family:var(--font-mono);font-size:13px"
+                >
+                <button
+                  type="button"
+                  class="btn btn-secondary btn-sm"
+                  onclick="const el=document.getElementById('gemini-api-key');el.type=el.type==='password'?'text':'password';this.textContent=el.type==='password'?'Show':'Hide'"
+                >Show</button>
+              </div>
+              <span class="hint">
+                Get an API key from <a href="https://aistudio.google.com/app/apikey" target="_blank" rel="noopener noreferrer" style="color:var(--accent)">Google AI Studio</a>. Keys are stored locally in your workspace settings.
+              </span>
+            </div>
+
+            <div class="row" style="gap:10px;align-items:center">
+              <button class="btn btn-primary" data-a="saveGeminiApiKey" id="gemini-key-save">
+                ${ic('check', 14)}Save API Key
+              </button>
+              ${
+                geminiKey
+                  ? `<button type="button" class="btn btn-ghost" data-a="clearGeminiApiKey" style="color:var(--red)">Remove Key</button>`
+                  : ''
+              }
+            </div>
+          </form>
+        </div>
+
+        <div class="sblock">
+          <h2>Key Status & Environment</h2>
+          ${srow(
+            'Active Key Source',
+            'Determines which key will be used by the Gemini 2.5 Flash audio generation service.',
+            geminiKey
+              ? `<span class="badge green">${ic('check', 11)}Saved in Workspace Settings</span>`
+              : hasEnvKey
+              ? `<span class="badge blue">${ic('sparkles', 11)}Loaded from VITE_GEMINI_API_KEY</span>`
+              : `<span class="badge amber">${ic('circle-alert', 11)}Not Configured</span>`
+          )}
+          ${srow(
+            'Model & Endpoint',
+            'Target model architecture configured for native MP3 audio output.',
+            `<span class="mono" style="font-size:12px;color:var(--text)">gemini-2.5-flash (Puck voice)</span>`
           )}
         </div>
       `
