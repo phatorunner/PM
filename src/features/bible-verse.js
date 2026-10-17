@@ -176,3 +176,4 @@ export function startBibleVerseRotation() {
     }
   }, 60 * 1000);
 }
+

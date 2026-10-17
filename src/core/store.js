@@ -6,6 +6,8 @@ import { seed } from '../data/seed.js';
 export const STORE_KEY = 'gr8r.v5';
 export const SIDEBAR_PAGES = [
   { group: 'Overview', items: [
+    { id: 'welcome', name: 'Welcome', icon: 'sun' },
+    { id: 'agents', name: 'Agent', icon: 'bot' },
     { id: 'home', name: 'Home', icon: 'house' },
     { id: 'inbox', name: 'Inbox', icon: 'inbox' },
     { id: 'mytasks', name: 'My Tasks', icon: 'circle-check' },

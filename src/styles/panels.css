@@ -6,6 +6,9 @@
   border: 1px solid var(--border);
   border-radius: var(--r-lg);
 }
+.home-meetings-panel {
+  min-height: 220px;
+}
 .panel-h {
   display: flex;
   align-items: center;

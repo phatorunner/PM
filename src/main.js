@@ -17,6 +17,7 @@ import './shell/layout.js';
 import './shell/skeletons.js';
 import './shell/view-engine.js';
 import './components/task-list.js';
+import './pages/welcome.js';
 import './pages/agents.js';
 import './pages/home.js';
 import './pages/overview.js';

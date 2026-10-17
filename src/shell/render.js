@@ -13,6 +13,7 @@ import { placePop } from '../overlays/popovers.js';
 import { renderAuth } from '../pages/auth.js';
 
 export const ROUTE_NAMES = {
+  welcome: 'Welcome',
   agents: 'Agent',
   home: 'Home',
   agenda: 'Agenda',
@@ -39,7 +40,8 @@ export const ROUTE_NAMES = {
   archive: 'Archive',
 };
 export const ROUTE_ICONS = {
-  agents: 'sparkles',
+  welcome: 'sun',
+  agents: 'bot',
   home: 'house',
   agenda: 'calendar-days',
   people: 'contact',

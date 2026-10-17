@@ -79,7 +79,7 @@ export function pageHome() {
     <div class="grid2">
       <div class="stack">
         <!-- Meetings component (above My tasks) -->
-        <section class="panel" aria-labelledby="h-meetings">
+        <section class="panel home-meetings-panel" aria-labelledby="h-meetings" style="min-height:220px;display:flex;flex-direction:column">
           <div class="panel-h">
             <h2 id="h-meetings">Meetings</h2>
             <div class="acts">
