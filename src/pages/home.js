@@ -193,19 +193,13 @@ export function pageHome() {
                   imminentMeeting.personCompany ? `@ ${imminentMeeting.personCompany}` : '',
                 ].filter(Boolean).join(' · ');
 
-                const isLive = imminentDiffMins <= 0;
-                const timerText = isLive ? 'Happening now' : `Starts in ${imminentDiffMins}m`;
+                const canJoinCall = imminentDiffMins <= 5 && imminentMeeting.meetUrl;
 
                 return `<div class="imminent-meeting-card" aria-label="Upcoming meeting">
                   <!-- PixelBlast Interactive WebGL2 Background (React Bits) -->
                   <div id="imminent-pixel-blast" class="pixel-blast-container" style="position:absolute;inset:0;width:100%;height:100%;pointer-events:auto;z-index:0"></div>
-                  <div class="imminent-bg-overlay" style="z-index:1;background:linear-gradient(180deg, rgba(20,20,24,0.15) 0%, rgba(20,20,24,0.7) 50%, rgba(15,15,18,0.95) 100%)"></div>
 
-                  <div class="row" style="justify-content:space-between;align-items:center;position:relative;z-index:2">
-                    <div class="imminent-timer-badge" style="display:inline-flex;align-items:center;gap:6px;padding:4px 10px;background:rgba(137,0,26,0.35);border:1px solid rgba(255,255,255,0.16);border-radius:var(--r-full);backdrop-filter:blur(10px)">
-                      <span class="imminent-timer-dot" style="width:7px;height:7px;border-radius:50%;background:#ef4444;box-shadow:0 0 8px #ef4444;animation:pulse 1.8s infinite"></span>
-                      <span style="font-size:11.5px;font-weight:600;letter-spacing:0.02em;color:#fff">${timerText}</span>
-                    </div>
+                  <div class="row" style="justify-content:flex-end;align-items:center;position:relative;z-index:2">
                     <div class="row" style="gap:4px">
                       <button class="ibtn ibtn-xs" data-a="openRescheduleModal" data-id="${imminentMeeting.id}" data-tip="Reschedule" aria-label="Reschedule" style="color:rgba(255,255,255,0.7);background:rgba(255,255,255,0.06);border-radius:var(--r-sm)">${ic('calendar-clock', 13)}</button>
                       <button class="ibtn ibtn-xs" data-a="openRequestRescheduleModal" data-id="${imminentMeeting.id}" data-tip="Request reschedule" aria-label="Request reschedule" style="color:rgba(255,255,255,0.7);background:rgba(255,255,255,0.06);border-radius:var(--r-sm)">${ic('send', 13)}</button>
@@ -222,16 +216,13 @@ export function pageHome() {
                   </div>
 
                   <div class="imminent-actions" style="position:relative;z-index:2">
-                    <div class="row" style="gap:6px">
-                      <button class="imminent-btn-icon" data-a="researchMeetingAttendee" data-id="${imminentMeeting.id}" data-tip="AI Research" aria-label="AI Research">
-                        ${ic('sparkles', 15)}
-                      </button>
+                    <div>
                       <button class="imminent-btn-report" data-a="readMeetingReport" data-id="${imminentMeeting.id}">
                         ${ic('file-text', 13)} Read report
                       </button>
                     </div>
                     ${
-                      imminentMeeting.meetUrl
+                      canJoinCall
                         ? `<a class="imminent-btn-join" href="${esc(imminentMeeting.meetUrl)}" target="_blank" rel="noopener">
                             Join Call
                           </a>`
