@@ -4,7 +4,7 @@
 import { $, $$, TODAY, addD, dOff, esc, fmtDate, iso, parse, uid } from '../core/utils.js';
 import { PR, PSTAT, ST } from '../core/constants.js';
 import { seed } from '../data/seed.js';
-import { D, DEFAULT_PREFS, GOOGLE_CLIENT_ID, S, allTasks, canSee, commentsOf, contact, gcalState, logAct, me, mem, proj, save, task, tasksOf, visibleProjects } from '../core/store.js';
+import { D, DEFAULT_PREFS, GOOGLE_CLIENT_ID, S, allTasks, calcomState, canSee, commentsOf, contact, gcalState, logAct, me, meeting, mem, proj, save, task, tasksOf, visibleProjects } from '../core/store.js';
 import { fileType, fsize } from '../ui/helpers.js';
 import { effectiveDark } from '../core/theme.js';
 import { mutate, toast } from '../ui/toast.js';
@@ -13,7 +13,9 @@ import { viewOf } from '../shell/view-engine.js';
 import { TEMPLATES, closeModal, openModal } from '../overlays/modals.js';
 import { closePop, openPop, tgt } from '../overlays/popovers.js';
 import { strengthMeter } from '../pages/settings.js';
+import { apiRequestRescheduleBooking, apiRescheduleBooking, startCalcomPolling, syncCalcom } from '../features/calcom-sync.js';
 import { fetchGoogleUserProfile, requestGoogleOAuth, syncGoogleCalendar } from '../core/gcal.js';
+import { chooseLocalFolder, createRecoveryBackup, disconnectLocalFolder, reconnectLocalFolder, saveAttachmentContent, triggerAutosave } from '../features/fs-storage.js';
 
 export const A = {},
   IN = {},
@@ -44,6 +46,7 @@ export function createTask(f) {
       deps: [],
       desc: '',
       estimate: null,
+      phase: 1,
       created: Date.now(),
       updated: Date.now(),
       order: maxO + 1,
@@ -103,6 +106,7 @@ export function applyPatch(t, patch) {
     else if (k === 'title') logAct('renamed', t, `to “${nv}”`);
     else if (k === 'recur') logAct('set repeat on', t, nv ? nv.toLowerCase() : 'off');
     else if (k === 'estimate') logAct('estimated', t, nv || 'none');
+    else if (k === 'phase') logAct('moved to phase', t, `P${nv || 1}`);
     else if (k === 'deps') logAct('updated dependencies of', t);
     t.updated = Date.now();
   }
@@ -134,6 +138,7 @@ export function snapshot() {
 export function restore(snap) {
   S.data = JSON.parse(snap);
   save();
+  triggerAutosave();
   render();
 }
 export async function copy(text, msg = 'Link copied') {
@@ -350,10 +355,11 @@ A.popPick = el => {
     toast(`${m.name} is now ${v === 'Admin' ? 'an' : 'a'} ${v}`);
     return;
   }
-  const field = { status: 'status', priority: 'priority', assignee: 'assignee', project: 'project', recur: 'recur', estimate: 'estimate', date: p.field }[
+  const field = { status: 'status', priority: 'priority', assignee: 'assignee', project: 'project', recur: 'recur', estimate: 'estimate', phase: 'phase', date: p.field }[
     p.type
   ];
   if (!field) return;
+  if (field === 'phase') v = v ? Number(v) : null;
   if (field === 'assignee' && !v) v = null;
   if (field === 'recur' && v === 'Does not repeat') v = null;
   if ((field === 'estimate' || field === 'due' || field === 'start') && !v) v = null;
@@ -566,6 +572,7 @@ A.editTask = el => {
     subtasks: t.subtasks.map(s => ({ ...s })),
     files: [],
     recur: t.recur,
+    phase: t.phase || 1,
     more: false,
   };
   S.ui.errors = {};
@@ -599,6 +606,7 @@ A.newTask = el => {
     subtasks: [],
     files: [],
     recur: null,
+    phase: d.phase ? Number(d.phase) : 1,
     more: S.ui.form?.more || false,
   };
   S.ui.errors = {};
@@ -615,7 +623,7 @@ IN.formMore = el => {
   S.ui.form.more = el.checked;
 };
 IN.formFiles = el => {
-  [...el.files].forEach(f => S.ui.form.files.push({ name: f.name, size: fsize(f.size), type: fileType(f.name) }));
+  [...el.files].forEach(f => S.ui.form.files.push({ file: f, name: f.name, size: fsize(f.size), type: fileType(f.name) }));
   render();
 };
 KEY.formAddSub = el => {
@@ -646,7 +654,11 @@ A.submitTask = () => {
     return;
   }
   S.ui.errors = {};
-  const files = f.files.map(x => ({ id: uid('a'), name: x.name, type: x.type, size: x.size, by: D().me, at: Date.now() }));
+  const files = f.files.map(x => {
+    const aid = uid('a');
+    if (x.file) saveAttachmentContent(x.file, aid).catch(() => {});
+    return { id: aid, name: x.name, type: x.type, size: x.size, by: D().me, at: Date.now() };
+  });
   const base = {
     title,
     project: f.project,
@@ -657,6 +669,7 @@ A.submitTask = () => {
     start: f.start && f.due && f.start > f.due ? f.due : f.start,
     labels: f.labels,
     recur: f.recur,
+    phase: f.phase ? Number(f.phase) : 1,
     subtasks: f.subtasks,
   };
   if (m.edit) {
@@ -859,16 +872,27 @@ export function handleFiles(files, ctx) {
       if (up.pct >= 100) {
         clearInterval(iv);
         S.ui.uploads = S.ui.uploads.filter(x => x !== up);
-        const rec = { id: uid('f'), name: up.name, type: fileType(up.name), size: up.size, by: D().me, at: Date.now() };
-        D().files.unshift({ ...rec, project: up.project, task: up.task || null });
-        if (up.task) {
-          const t = task(up.task);
-          t.attachments.push(rec);
-          logAct('added a file to', t, up.name);
-        }
-        save();
-        render();
-        toast(`Uploaded ${up.name}`);
+        const fileId = uid('f');
+        const rec = { id: fileId, name: up.name, type: fileType(up.name), size: up.size, by: D().me, at: Date.now() };
+
+        // Save physical file contents to /attachments/ folder before updating JSON references
+        saveAttachmentContent(file, fileId)
+          .then(diskPath => {
+            if (diskPath) rec.path = diskPath;
+          })
+          .catch(() => {})
+          .finally(() => {
+            D().files.unshift({ ...rec, project: up.project, task: up.task || null });
+            if (up.task) {
+              const t = task(up.task);
+              t.attachments.push(rec);
+              logAct('added a file to', t, up.name);
+            }
+            save();
+            triggerAutosave();
+            render();
+            toast(`Uploaded ${up.name}`);
+          });
       }
     }, 220);
   });
@@ -1326,6 +1350,7 @@ export function createProject(f, tmplId) {
     members: [...new Set([D().me, f.lead])],
     desc: f.desc || 'No description yet.',
     milestones: [],
+    phases: [{ id: 1, name: 'Phase 1' }],
     last: 0,
   };
   D().projects.push(p);
@@ -1399,6 +1424,92 @@ A.dupProject = el => {
   });
   toast(`Duplicated ${p.name}`, { action: 'Open', onAction: () => go('project', { id: n.id }) });
 };
+A.openPhaseModal = el => {
+  const pid = el.dataset.project || el.dataset.id;
+  const phid = el.dataset.phase ? Number(el.dataset.phase) : null;
+  openModal({ type: 'phase', projectId: pid, phaseId: phid });
+};
+A.submitPhaseModal = el => {
+  const modalEl = el.closest('.modal') || document;
+  const form = modalEl.querySelector('form');
+  const pid = el.dataset.project || form?.dataset.project;
+  const phid = el.dataset.phase ? Number(el.dataset.phase) : form?.dataset.phase ? Number(form.dataset.phase) : null;
+  const nameInput = modalEl.querySelector('#ph-name');
+  const descInput = modalEl.querySelector('#ph-desc');
+  const name = nameInput?.value?.trim();
+  const desc = descInput?.value?.trim() || '';
+  if (!name) {
+    toast('Phase name is required', { kind: 'warn' });
+    nameInput?.focus();
+    return;
+  }
+  const p = proj(pid);
+  if (!p) return;
+  if (!p.phases) p.phases = [];
+  if (phid) {
+    const ph = p.phases.find(x => x.id === phid);
+    if (!ph) return;
+    mutate(() => {
+      ph.name = name;
+      ph.desc = desc;
+    });
+    toast(`Updated ${name}`);
+  } else {
+    const nextId = p.phases.length ? Math.max(...p.phases.map(x => x.id)) + 1 : 1;
+    mutate(() => {
+      p.phases.push({ id: nextId, name, desc });
+    });
+    toast(`Created ${name}`);
+  }
+  closeModal();
+  render();
+};
+A.movePhaseOrder = el => {
+  const pid = el.dataset.project;
+  const phid = Number(el.dataset.phase);
+  const dir = el.dataset.dir; // 'up' or 'down'
+  const p = proj(pid);
+  if (!p || !p.phases || p.phases.length < 2) return;
+  const idx = p.phases.findIndex(x => x.id === phid);
+  if (idx < 0) return;
+  const targetIdx = dir === 'up' ? idx - 1 : idx + 1;
+  if (targetIdx < 0 || targetIdx >= p.phases.length) return;
+  mutate(() => {
+    const temp = p.phases[idx];
+    p.phases[idx] = p.phases[targetIdx];
+    p.phases[targetIdx] = temp;
+  });
+  render();
+};
+A.removePhase = el => {
+  const pid = el.dataset.project;
+  const phid = Number(el.dataset.phase);
+  const p = proj(pid);
+  if (!p || !p.phases) return;
+  const ph = p.phases.find(x => x.id === phid);
+  const affectedTasks = D().tasks.filter(t => t.project === p.id && t.phase === phid);
+  const otherPhases = p.phases.filter(x => x.id !== phid);
+  confirmDlg({
+    title: `Delete ${ph?.name || 'Phase'}?`,
+    body: affectedTasks.length
+      ? `This phase has <b>${affectedTasks.length} task${affectedTasks.length === 1 ? '' : 's'}</b>. They will be kept in the project and unassigned from this phase.`
+      : `Are you sure you want to delete this phase?`,
+    ok: 'Delete phase',
+    danger: true,
+    run: () => {
+      mutate(() => {
+        p.phases = p.phases.filter(x => x.id !== phid);
+        affectedTasks.forEach(t => {
+          t.phase = null;
+        });
+      });
+      render();
+      toast(`Deleted phase`);
+    },
+  });
+};
+A.addPhase = el => A.openPhaseModal(el);
+A.renamePhase = el => A.openPhaseModal(el);
 A.archiveProject = el => {
   const p = proj(el.dataset.id);
   S.ui.pop = null;
@@ -2811,7 +2922,11 @@ A.newMeetingModal = () => {
 };
 
 A.openRescheduleModal = el => {
-  openModal({ type: 'rescheduleMeeting', id: el.dataset.id });
+  openModal({ type: 'rescheduleMeeting', id: el.dataset.id, mode: el.dataset.mode || 'reschedule' });
+};
+
+A.openRequestRescheduleModal = el => {
+  openModal({ type: 'rescheduleMeeting', id: el.dataset.id, mode: 'request' });
 };
 
 A.openEditMeetingModal = el => {
@@ -2962,10 +3077,12 @@ A.submitNewMeeting = () => {
   render();
 };
 
-A.submitReschedule = () => {
+A.submitReschedule = async () => {
   const id = $('#rs-id')?.value;
   const m = meeting(id);
   if (!m) return;
+  const mode = $('#rs-mode')?.value || 'reschedule';
+  const isRequest = mode === 'request';
   const newDate = $('#rs-date')?.value;
   const newTime = $('#rs-time')?.value;
   const reason = ($('#rs-reason')?.value || '').trim();
@@ -2976,25 +3093,71 @@ A.submitReschedule = () => {
   }
 
   mutate(() => {
-    m.date = newDate;
-    m.time = newTime;
-    m.status = 'upcoming';
-    if (reason) m.notes = (m.notes ? m.notes + '\n\n' : '') + `Rescheduled to ${fmtDate(newDate, true)} ${newTime}. Note: ${reason}`;
-    m.updatedAt = Date.now();
+    if (isRequest) {
+      m.rescheduleRequested = {
+        date: newDate,
+        time: newTime,
+        reason,
+        requestedAt: Date.now(),
+      };
+      if (reason) {
+        m.notes = (m.notes ? m.notes + '\n\n' : '') + `[Reschedule Request] Proposed: ${fmtDate(newDate, true)} at ${newTime}. Note: ${reason}`;
+      }
+      m.updatedAt = Date.now();
 
-    D().notifs.unshift({
-      id: uid('n'),
-      type: 'update',
-      text: `Meeting rescheduled: ${m.title}`,
-      snippet: `Moved to ${fmtDate(newDate, true)} at ${newTime} with ${m.personName}.`,
-      at: Date.now(),
-      read: false,
-    });
+      D().notifs.unshift({
+        id: uid('n'),
+        type: 'update',
+        text: `Reschedule request sent: ${m.title}`,
+        snippet: `Proposed ${fmtDate(newDate, true)} at ${newTime} to ${m.personName || 'guest'}.${reason ? ` Note: “${reason}”` : ''}`,
+        at: Date.now(),
+        read: false,
+      });
+    } else {
+      m.date = newDate;
+      m.time = newTime;
+      m.status = 'upcoming';
+      delete m.rescheduleRequested;
+      if (reason) m.notes = (m.notes ? m.notes + '\n\n' : '') + `Rescheduled to ${fmtDate(newDate, true)} ${newTime}. Note: ${reason}`;
+      m.updatedAt = Date.now();
+
+      D().notifs.unshift({
+        id: uid('n'),
+        type: 'update',
+        text: `Meeting rescheduled: ${m.title}`,
+        snippet: `Moved to ${fmtDate(newDate, true)} at ${newTime} with ${m.personName}.`,
+        at: Date.now(),
+        read: false,
+      });
+    }
   });
 
   closeModal();
-  toast(`Rescheduled meeting with ${m.personName}`);
   render();
+
+  // If this booking came from Cal.com and has an active Cal.com UID/key, execute the API call
+  const calUid = m.calcomUid || (m.source === 'calcom' && m.id.startsWith('calcom_') ? m.id.replace('calcom_', '') : null);
+  if (calUid) {
+    toast(isRequest ? 'Sending reschedule request via Cal.com…' : 'Rescheduling on Cal.com…');
+    if (isRequest) {
+      const res = await apiRequestRescheduleBooking(calUid, { reason });
+      if (res.ok) {
+        toast(`Reschedule request sent to ${m.personName || 'attendee'} via Cal.com!`);
+      } else {
+        toast(`Local request saved (Cal.com API: ${res.message || 'skipped'})`, { kind: 'warn' });
+      }
+    } else {
+      const res = await apiRescheduleBooking(calUid, { date: newDate, time: newTime, reason });
+      if (res.ok) {
+        toast(`Successfully rescheduled on Cal.com!`);
+        syncCalcom(); // refresh latest state from Cal.com
+      } else {
+        toast(`Updated locally (Cal.com API: ${res.message || 'skipped'})`, { kind: 'warn' });
+      }
+    }
+  } else {
+    toast(isRequest ? `Reschedule request recorded for ${m.personName || 'attendee'}` : `Rescheduled meeting with ${m.personName || 'attendee'}`);
+  }
 };
 
 A.submitEditMeeting = () => {
@@ -3029,7 +3192,7 @@ A.submitEditMeeting = () => {
   render();
 };
 
-A.saveCalcomSettings = () => {
+A.saveCalcomSettings = async () => {
   const username = ($('#cal-username')?.value || 'phato').trim();
   const apiKey = ($('#cal-key')?.value || '').trim();
 
@@ -3048,6 +3211,40 @@ A.saveCalcomSettings = () => {
   closeModal();
   toast('Cal.com settings saved');
   render();
+  startCalcomPolling();
+
+  if (apiKey) {
+    const res = await syncCalcom({ manual: true });
+    if (res?.ok) {
+      toast(`Synced ${res.count || 0} meeting${res.count === 1 ? '' : 's'} from Cal.com`);
+    } else if (res?.message) {
+      toast(res.message, { kind: 'err' });
+    }
+  }
+};
+
+A.syncCalcomNow = async () => {
+  // If inputs are currently visible in the modal, capture them first
+  const keyInput = $('#cal-key');
+  const userInput = $('#cal-username');
+  if (keyInput) {
+    const apiKey = keyInput.value.trim();
+    const username = (userInput?.value || 'phato').trim();
+    mutate(() => {
+      const cal = calcomState();
+      cal.username = username;
+      cal.apiKey = apiKey;
+      cal.connected = true;
+    });
+  }
+
+  toast('Updating meetings from Cal.com…');
+  const res = await syncCalcom({ manual: true });
+  if (res?.ok) {
+    toast(`Updated: ${res.count} meeting${res.count === 1 ? '' : 's'} synced`);
+  } else {
+    toast(res?.message || 'Failed to update meetings from Cal.com', { kind: 'err' });
+  }
 };
 
 A.saveAvailability = () => {
@@ -3158,3 +3355,14 @@ A.simulateCalcomBooking = () => {
   toast(`Simulated new Cal.com booking with ${pick[0]}! Added to Meetings, People CRM, and Notifications.`);
   render();
 };
+
+A.chooseFolder = () => chooseLocalFolder();
+A.reconnectFolder = () => reconnectLocalFolder();
+A.disconnectFolder = () => disconnectLocalFolder();
+A.retryAutosave = () => triggerAutosave(true);
+A.triggerManualBackup = () => {
+  createRecoveryBackup(false);
+  toast('Recovery backup triggered');
+};
+
+

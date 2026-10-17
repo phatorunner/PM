@@ -70,6 +70,13 @@ export function drawerHtml(t) {
         ${prop('calendar', 'Due date', cellDue(t))}
         ${prop('calendar-arrow-up', 'Start date', `<button class="pillbtn ${t.start ? '' : 'empty'}" data-a="pop" data-pop="date" data-field="start" data-id="${t.id}">${ic('calendar', 13)}${t.start ? fmtDate(t.start) : 'Set date'}</button>`)}
         ${prop('folder', 'Project', cellProject(t))}
+        ${(() => {
+          const pr = proj(t.project);
+          const phIdx = pr?.phases ? pr.phases.findIndex(x => x.id === t.phase) : -1;
+          const phObj = pr?.phases?.find(x => x.id === t.phase);
+          const label = phIdx >= 0 ? `P${phIdx + 1} · ${phObj?.name || 'Phase'}` : 'Unassigned';
+          return prop('layers', 'Phase', `<button class="pillbtn ${t.phase ? '' : 'empty'}" data-a="pop" data-pop="phase" data-id="${t.id}">${ic('layers', 13)}<span>${esc(label)}</span></button>`);
+        })()}
         ${prop('tag', 'Labels', `<button class="pillbtn ${t.labels.length ? '' : 'empty'}" data-a="pop" data-pop="labels" data-id="${t.id}" style="flex-wrap:wrap;height:auto;min-height:26px;padding:3px 7px">${t.labels.length ? t.labels.map(lbl).join('') : ic('tag', 13) + 'Add labels'}</button>`)}
         ${prop('repeat', 'Repeat', `<button class="pillbtn ${t.recur ? '' : 'empty'}" data-a="pop" data-pop="recur" data-id="${t.id}">${ic('repeat', 13)}${t.recur || 'Does not repeat'}</button>`)}
         ${prop('timer', 'Estimate', `<button class="pillbtn ${t.estimate ? '' : 'empty'}" data-a="pop" data-pop="estimate" data-id="${t.id}">${ic('timer', 13)}${t.estimate ? esc(t.estimate) : 'Add estimate'}</button>`)}

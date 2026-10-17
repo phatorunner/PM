@@ -98,6 +98,7 @@ export function pageHome() {
                     `<button role="tab" class="${mTab === k ? 'on' : ''}" data-a="set" data-k="homeMeetingsTab" data-v="${k}">${n} <span class="faint">${meetingLists[k].length}</span></button>`,
                 )
                 .join('')}</div>
+              <button class="ibtn ibtn-sm" data-a="syncCalcomNow" data-tip="Sync meetings now" aria-label="Sync meetings now">${ic('refresh-cw', 13)}</button>
               <button class="ibtn ibtn-sm" data-a="go" data-r="meetings" data-tip="Open Meetings" aria-label="Open Meetings">${ic('arrow-up-right', 15)}</button>
             </div>
           </div>
@@ -123,6 +124,7 @@ export function pageHome() {
                       <div class="row" style="gap:6px">
                         ${m.meetUrl && m.status !== 'cancelled' ? `<a class="btn btn-secondary btn-xs" href="${esc(m.meetUrl)}" target="_blank" rel="noopener">${ic('video', 12)}Join</a>` : ''}
                         <button class="ibtn ibtn-xs" data-a="openRescheduleModal" data-id="${m.id}" data-tip="Reschedule" aria-label="Reschedule">${ic('calendar-clock', 13)}</button>
+                        <button class="ibtn ibtn-xs" data-a="openRequestRescheduleModal" data-id="${m.id}" data-tip="Request reschedule" aria-label="Request reschedule">${ic('send', 12)}</button>
                         <button class="ibtn ibtn-xs" data-a="openEditMeetingModal" data-id="${m.id}" data-tip="Edit meeting" aria-label="Edit meeting">${ic('pencil', 12)}</button>
                       </div>
                     </div>`,
@@ -180,6 +182,7 @@ export function pageHome() {
                   <div class="row" style="justify-content:flex-end;align-items:center">
                     <div class="row" style="gap:4px">
                       <button class="ibtn ibtn-xs" data-a="openRescheduleModal" data-id="${imminentMeeting.id}" data-tip="Reschedule" aria-label="Reschedule" style="color:rgba(255,255,255,0.7);background:rgba(255,255,255,0.06);border-radius:var(--r-sm)">${ic('calendar-clock', 13)}</button>
+                      <button class="ibtn ibtn-xs" data-a="openRequestRescheduleModal" data-id="${imminentMeeting.id}" data-tip="Request reschedule" aria-label="Request reschedule" style="color:rgba(255,255,255,0.7);background:rgba(255,255,255,0.06);border-radius:var(--r-sm)">${ic('send', 13)}</button>
                       <button class="ibtn ibtn-xs" data-a="openEditMeetingModal" data-id="${imminentMeeting.id}" data-tip="Edit details" aria-label="Edit details" style="color:rgba(255,255,255,0.7);background:rgba(255,255,255,0.06);border-radius:var(--r-sm)">${ic('pencil', 13)}</button>
                     </div>
                   </div>

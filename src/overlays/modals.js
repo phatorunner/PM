@@ -75,6 +75,8 @@ export function modalHtml(m) {
       return wrap('', calcomSettingsModal(H));
     case 'calcomAvailability':
       return wrap('', calcomAvailabilityModal(H));
+    case 'phase':
+      return wrap('sm', phaseModal(m, H));
   }
   return '';
 }
@@ -96,6 +98,12 @@ export function taskModal(m, H) {
       ${formChip('priority', prPill(f.priority), 'Priority')}
       ${formChip('date', `${ic('calendar', 13)}${f.due ? 'Due ' + fmtDate(f.due) : 'Due date'}`, 'due')}
       ${formChip('date', `${ic('calendar-arrow-up', 13)}${f.start ? 'Starts ' + fmtDate(f.start) : 'Start date'}`, 'start')}
+      ${(() => {
+        const phIdx = p?.phases ? p.phases.findIndex(x => x.id === f.phase) : -1;
+        const phObj = p?.phases?.find(x => x.id === f.phase);
+        const txt = phIdx >= 0 ? `P${phIdx + 1} · ${phObj?.name || 'Phase'}` : 'Phase';
+        return formChip('phase', `${ic('layers', 13)}${txt}`, 'Phase');
+      })()}
       ${formChip('labels', f.labels.length ? f.labels.map(lbl).join('') : `${ic('tag', 13)}Labels`, 'Labels')}
       ${formChip('recur', `${ic('repeat', 13)}${f.recur || 'Repeat'}`, 'Repeat')}
     </div>
@@ -534,33 +542,42 @@ export function newMeetingModal(m, H) {
 export function rescheduleMeetingModal(m, H) {
   const mtg = meeting(m.id);
   if (!mtg) return '';
-  return `${H('Reschedule Booking', `Change the scheduled date or time for ${esc(mtg.personName || 'attendee')}.`)}
+  const isRequest = m.mode === 'request';
+  const title = isRequest ? 'Request Reschedule' : 'Reschedule Booking';
+  const subtitle = isRequest
+    ? `Send a reschedule request with preferred date/time to ${esc(mtg.personName || 'attendee')}.`
+    : `Change the scheduled date or time for ${esc(mtg.personName || 'attendee')}.`;
+  const btnLabel = isRequest ? 'Send Reschedule Request' : 'Confirm Reschedule';
+
+  return `${H(title, subtitle)}
   <form class="modal-b" data-submit="submitReschedule" style="gap:12px">
     <input type="hidden" id="rs-id" value="${mtg.id}">
+    <input type="hidden" id="rs-mode" value="${isRequest ? 'request' : 'reschedule'}">
     <div class="panel" style="padding:10px 14px;background:var(--surface)">
       <b style="font-size:13.5px">${esc(mtg.title)}</b>
-      <div class="faint" style="font-size:12px;margin-top:2px">Currently set for: <b>${fmtDate(mtg.date, true)} at ${mtg.time}</b></div>
+      <div class="faint" style="font-size:12px;margin-top:2px">Currently set for: <b>${fmtDate(mtg.date, true)} at ${mtg.time}</b> with <b>${esc(mtg.personName || 'Guest')}</b></div>
     </div>
 
     <div class="row" style="gap:12px">
       <div class="field grow">
-        <label class="label" for="rs-date">New Date *</label>
+        <label class="label" for="rs-date">${isRequest ? 'Proposed New Date *' : 'New Date *'}</label>
         <input type="date" class="input" id="rs-date" value="${mtg.date}" required autofocus>
       </div>
       <div class="field" style="width:130px">
-        <label class="label" for="rs-time">New Time *</label>
+        <label class="label" for="rs-time">${isRequest ? 'Proposed Time *' : 'New Time *'}</label>
         <input type="time" class="input" id="rs-time" value="${mtg.time}" required>
       </div>
     </div>
 
     <div class="field">
-      <label class="label" for="rs-reason">Reschedule note / message to attendee</label>
-      <textarea class="textarea" id="rs-reason" rows="2" placeholder="e.g. Due to an urgent conflict, proposing we move our discussion 2 hours later."></textarea>
+      <label class="label" for="rs-reason">${isRequest ? 'Reason / Message to Attendee *' : 'Reschedule note / message to attendee'}</label>
+      <textarea class="textarea" id="rs-reason" rows="2" placeholder="${isRequest ? 'Let the attendee know why you would like to reschedule…' : 'e.g. Due to an urgent conflict, proposing we move our discussion 2 hours later.'}"></textarea>
     </div>
   </form>
   <div class="modal-f">
-    <button class="btn btn-secondary" data-a="closeModal">Cancel</button>
-    <button class="btn btn-primary" data-a="submitReschedule">Confirm Reschedule</button>
+    <span class="sp"></span>
+    <button class="btn btn-secondary" type="button" data-a="closeModal">Cancel</button>
+    <button class="btn btn-primary" type="button" data-a="submitReschedule">${btnLabel}</button>
   </div>`;
 }
 
@@ -639,9 +656,10 @@ export function calcomSettingsModal(H) {
     </div>
   </form>
   <div class="modal-f">
+    <button class="btn btn-secondary" type="button" data-a="syncCalcomNow" title="Fetch latest bookings using saved key">${ic('refresh-cw', 13)} Sync Now</button>
     <span class="sp"></span>
-    <button class="btn btn-secondary" data-a="closeModal">Cancel</button>
-    <button class="btn btn-primary" data-a="saveCalcomSettings">Save Settings</button>
+    <button class="btn btn-secondary" type="button" data-a="closeModal">Cancel</button>
+    <button class="btn btn-primary" type="button" data-a="saveCalcomSettings">Save Settings</button>
   </div>`;
 }
 
@@ -683,4 +701,29 @@ export function calcomAvailabilityModal(H) {
     <button class="btn btn-primary" data-a="saveAvailability">Update Availability</button>
   </div>`;
 }
+
+export function phaseModal(m, H) {
+  const isEdit = !!m.phaseId;
+  const p = proj(m.projectId);
+  const ph = isEdit ? p?.phases?.find(x => x.id === m.phaseId) : null;
+  const name = ph ? ph.name : '';
+  const desc = ph ? (ph.desc || '') : '';
+  return `${H(isEdit ? 'Edit Phase' : 'Create Phase', p ? `Project: ${esc(p.name)}` : '')}
+  <form class="modal-b" data-submit="submitPhaseModal" data-project="${esc(m.projectId)}" ${isEdit ? `data-phase="${m.phaseId}"` : ''} style="gap:14px">
+    <div class="field">
+      <label class="label" for="ph-name">Phase Name <span style="color:var(--red)">*</span></label>
+      <input class="input" id="ph-name" placeholder="e.g. Discovery & Wireframing" value="${esc(name)}" required autofocus>
+    </div>
+    <div class="field">
+      <label class="label" for="ph-desc">Description <span class="faint" style="font-weight:400">(optional)</span></label>
+      <textarea class="textarea" id="ph-desc" placeholder="What goals or milestones define this phase?" rows="3">${esc(desc)}</textarea>
+    </div>
+  </form>
+  <div class="modal-f">
+    <span class="sp"></span>
+    <button class="btn btn-secondary" data-a="closeModal">Cancel</button>
+    <button class="btn btn-primary" data-a="submitPhaseModal" data-project="${esc(m.projectId)}" ${isEdit ? `data-phase="${m.phaseId}"` : ''}>${isEdit ? 'Save Changes' : 'Create Phase'}</button>
+  </div>`;
+}
+
 

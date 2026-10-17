@@ -81,6 +81,7 @@ document.addEventListener('dragover', e => {
     const ref = after || body.querySelector('.addcard, .composer');
     if (line.nextSibling !== ref || line.parentNode !== body) body.insertBefore(line, ref);
     DRAG.col = col.dataset.dropCol;
+    DRAG.dropType = col.dataset.dropType || 'status';
     DRAG.before = after ? after.dataset.dragCard : null;
   } else if (DRAG.type === 'row') {
     const row = e.target.closest('.trow[data-task-row]');
@@ -135,23 +136,44 @@ document.addEventListener('drop', e => {
   clearDropMarks();
   if (d.type === 'card' && d.col) {
     const t = task(d.id);
-    const colTs = D()
-      .tasks.filter(x => x.status === d.col && x.id !== t.id && !x.archived)
-      .sort((a, b) => a.order - b.order);
-    let order;
-    if (d.before) {
-      const i = colTs.findIndex(x => x.id === d.before);
-      const prev = colTs[i - 1];
-      const nx = colTs[i];
-      order = prev ? (prev.order + nx.order) / 2 : nx.order - 1;
-    } else order = colTs.length ? colTs[colTs.length - 1].order + 1 : t.order;
-    const moved = t.status !== d.col;
-    fxSet({ moved: t.id });
-    mutate(() => {
-      t.order = order;
-      if (moved) applyPatch(t, { status: d.col });
-    });
-    if (moved) toast(`Moved “${t.title}” to ${ST[d.col].name}`, { ms: 2200 });
+    if (d.dropType === 'phase') {
+      const phId = Number(d.col);
+      const colTs = D()
+        .tasks.filter(x => (x.phase || 1) === phId && x.id !== t.id && !x.archived && x.project === t.project)
+        .sort((a, b) => a.order - b.order);
+      let order;
+      if (d.before) {
+        const i = colTs.findIndex(x => x.id === d.before);
+        const prev = colTs[i - 1];
+        const nx = colTs[i];
+        order = prev ? (prev.order + nx.order) / 2 : nx.order - 1;
+      } else order = colTs.length ? colTs[colTs.length - 1].order + 1 : t.order;
+      const moved = (t.phase || 1) !== phId;
+      fxSet({ moved: t.id });
+      mutate(() => {
+        t.order = order;
+        if (moved) applyPatch(t, { phase: phId });
+      });
+      if (moved) toast(`Moved “${t.title}” to Phase ${phId}`, { ms: 2200 });
+    } else {
+      const colTs = D()
+        .tasks.filter(x => x.status === d.col && x.id !== t.id && !x.archived)
+        .sort((a, b) => a.order - b.order);
+      let order;
+      if (d.before) {
+        const i = colTs.findIndex(x => x.id === d.before);
+        const prev = colTs[i - 1];
+        const nx = colTs[i];
+        order = prev ? (prev.order + nx.order) / 2 : nx.order - 1;
+      } else order = colTs.length ? colTs[colTs.length - 1].order + 1 : t.order;
+      const moved = t.status !== d.col;
+      fxSet({ moved: t.id });
+      mutate(() => {
+        t.order = order;
+        if (moved) applyPatch(t, { status: d.col });
+      });
+      if (moved) toast(`Moved “${t.title}” to ${ST[d.col]?.name || d.col}`, { ms: 2200 });
+    }
   } else if (d.type === 'row' && d.target) {
     const t = task(d.id),
       tg = task(d.target);

@@ -15,9 +15,11 @@ import { tableHtml } from '../views/table.js';
 import { calendarHtml } from '../views/calendar.js';
 import { timelineHtml, tlControls } from '../views/timeline.js';
 import { filesHtml } from '../views/files.js';
+import { phasesHtml } from '../views/phases.js';
 
 export const PTABS = [
   ['overview', 'Overview', 'layout-dashboard'],
+  ['phases', 'Phases', 'layers'],
   ['board', 'Board', 'square-kanban'],
   ['list', 'List', 'list'],
   ['table', 'Table', 'table-2'],
@@ -48,6 +50,7 @@ export function pageProject() {
       body = taskViewBody(sv.type, applyView(ts, viewOf(k)), k, p);
     }
   } else if (tab === 'overview') body = projOverview(p);
+  else if (tab === 'phases') body = phasesHtml(p);
   else if (tab === 'files') body = filesHtml(p.id);
   else if (tab === 'activity') body = projActivity(p);
   else body = taskViewBody(tab, applyView(ts, viewOf(key)), key, p);
@@ -68,10 +71,19 @@ export function pageProject() {
           <button class="ibtn ibtn-sm" data-a="ctxBtn" data-ctx="project" data-id="${p.id}" aria-label="More">${ic('ellipsis', 15)}</button>
         </div>
       </div>
-      <nav class="tabs" aria-label="Project views">
+      <nav class="tabs" aria-label="Project views" style="display:flex;align-items:center">
         ${PTABS.map(([k, n, i]) => `<button ${tab === k ? 'aria-current="page"' : ''} class="tab ${tab === k ? 'on' : ''}" data-a="go" data-r="project" data-id="${p.id}" data-tab="${k}">${ic(i, 14)}${n}</button>`).join('')}
         ${views.map(v => `<button ${tab === 'v:' + v.id ? 'aria-current="page"' : ''} class="tab ${tab === 'v:' + v.id ? 'on' : ''}" data-a="go" data-r="project" data-id="${p.id}" data-tab="v:${v.id}" data-ctx="savedview" data-vid="${v.id}">${ic('list-filter', 14)}${esc(v.name)}</button>`).join('')}
         <button class="tab" data-a="saveView" data-id="${p.id}" data-tip="Save current filters as a view" aria-label="Save view">${ic('plus', 14)}</button>
+        ${tab === 'phases' ? `<span class="sp" style="flex:1"></span>
+        <div class="row" style="gap:6px;padding-right:10px">
+          <button class="btn btn-secondary btn-sm" data-a="openPhaseModal" data-project="${p.id}" style="height:26px;font-size:12px;padding:0 9px;gap:5px">
+            ${ic('plus', 13)}Add phase
+          </button>
+          <button class="btn btn-primary btn-sm" data-a="newTask" data-project="${p.id}" style="height:26px;font-size:12px;padding:0 9px;gap:5px">
+            ${ic('plus', 13)}New task
+          </button>
+        </div>` : ''}
       </nav>
     </div>
     <div class="pbody${S.ui.fx.tab ? ' fx-tab' : ''}">${body}</div>

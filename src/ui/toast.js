@@ -3,6 +3,7 @@ import { $, esc } from '../core/utils.js';
 import { ic } from '../core/icons.js';
 import { S, save } from '../core/store.js';
 import { render } from '../shell/render.js';
+import { triggerAutosave } from '../features/fs-storage.js';
 
 export function toast(msg, opt = {}) {
   const host = $('#toasts');
@@ -33,6 +34,7 @@ export function mutate(fn, label) {
   }
   fn();
   save();
+  triggerAutosave();
   render();
   return true;
 }

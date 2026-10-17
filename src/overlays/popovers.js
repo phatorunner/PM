@@ -152,6 +152,26 @@ export function popHtml(p) {
         { search: 'Move to project…' },
       );
       break;
+    case 'phase': {
+      const pid = t?.project || (S.ui.route === 'project' ? S.ui.params.id : null);
+      const pr = proj(pid);
+      const phases = pr?.phases?.length ? pr.phases : [{ id: 1, name: 'Phase 1' }];
+      const curPhase = t?.phase;
+      const items = phases.map((ph, idx) => ({
+        id: String(ph.id),
+        name: ph.name || `Phase ${idx + 1}`,
+        html: `<span class="mono" style="font-size:11px;font-weight:700;color:var(--accent);margin-right:6px">P${idx + 1}</span>`,
+        on: curPhase === ph.id,
+      }));
+      items.push({
+        id: '',
+        name: 'No phase (unassigned)',
+        html: `<span class="mono faint" style="font-size:11px;margin-right:6px">—</span>`,
+        on: !curPhase,
+      });
+      inner = popList(items, { search: 'Select phase…' });
+      break;
+    }
     case 'recur':
       inner = popList(
         ['Does not repeat', 'Daily', 'Weekly', 'Every 2 weeks', 'Monthly'].map(x => ({

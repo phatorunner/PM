@@ -50,6 +50,9 @@ export function pageMeetings() {
           <input class="input input-sm" style="padding-left:28px" placeholder="Search attendee, title…" data-in="meetingsSearch" value="${esc(S.ui.meetingsQ || '')}">
           <span style="position:absolute;left:8px;top:7px;color:var(--text-3);pointer-events:none">${ic('search', 13)}</span>
         </div>
+        <button class="btn btn-secondary" data-a="syncCalcomNow" title="Manually update bookings from Cal.com API">
+          ${ic('refresh-cw', 14)}Sync Cal.com
+        </button>
         <button class="btn btn-secondary" data-a="openAvailabilityModal">
           ${ic('clock', 14)}Change availability
         </button>
@@ -199,8 +202,11 @@ export function meetingRowHtml(m) {
 
       ${
         !isCancelled
-          ? `<button class="btn btn-secondary btn-sm" data-a="openRescheduleModal" data-id="${m.id}" title="Reschedule date or time">
+          ? `<button class="btn btn-secondary btn-sm" data-a="openRescheduleModal" data-id="${m.id}" title="Reschedule date or time directly">
               ${ic('calendar-clock', 13)}<span class="hide-m">Reschedule</span>
+            </button>
+            <button class="btn btn-secondary btn-sm" data-a="openRequestRescheduleModal" data-id="${m.id}" title="Request attendee to reschedule">
+              ${ic('send', 13)}<span class="hide-m">Request reschedule</span>
             </button>
             <button class="ibtn ibtn-sm" data-a="openEditMeetingModal" data-id="${m.id}" data-tip="Edit details" aria-label="Edit meeting">
               ${ic('pencil', 13)}

@@ -49,5 +49,15 @@ function lucideSubset() {
 
 export default defineConfig({
   plugins: [lucideSubset()],
-  server: { port: 5173 },
+  server: {
+    port: 5173,
+    proxy: {
+      '/api/calcom': {
+        target: 'https://api.cal.com',
+        changeOrigin: true,
+        rewrite: path => path.replace(/^\/api\/calcom/, ''),
+        secure: true,
+      },
+    },
+  },
 });

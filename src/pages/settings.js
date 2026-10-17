@@ -8,12 +8,14 @@ import { av, empty, pIcon } from '../ui/helpers.js';
 import { permsTable, teamsGrid } from './members.js';
 import { page404 } from './errors.js';
 import { SHORTCUTS } from '../overlays/modals.js';
+import { FS_STATUS, getStorageSettings } from '../features/fs-storage.js';
 
 export const SET_NAV = [
   [
     'General',
     [
       ['workspace', 'Workspace', 'building-2'],
+      ['database', 'Database', 'database'],
       ['appearance', 'Appearance', 'palette'],
       ['sidebar', 'Sidebar', 'panel-left'],
       ['language', 'Language', 'languages'],
@@ -100,6 +102,151 @@ export function settingsBody(sec, title) {
       <div><button class="btn btn-primary" data-a="saveWorkspace" id="ws-save">Save changes</button></div></div></div></form>
       <div class="sblock"><h2 style="color:var(--red)">Danger zone</h2>${srow('Delete workspace', 'Permanently delete this workspace, its projects, tasks, and files. This cannot be undone.', `<button class="btn btn-danger-ghost" style="border:1px solid color-mix(in srgb,var(--red) 35%,transparent)" data-a="delWorkspace">Delete workspace</button>`)}</div>`
       );
+    case 'database': {
+      const sf = getStorageSettings();
+      const hasFolder = !!sf.name;
+      const isConnected = sf.status === 'connected';
+      const needsPerm = sf.status === 'needs_permission';
+      return (
+        H('Manage local folder storage and database synchronization.') +
+        `
+        <!-- Storage Status Banner -->
+        ${(() => {
+          if (!hasFolder) {
+            return `<div class="alert info" style="margin-bottom:20px">
+              ${ic('info', 16)}
+              <div style="line-height:1.5">
+                <b>Local Folder Not Connected</b><br>
+                All data is currently stored in your browser's local storage (<code>localStorage: gr8r.v5</code>). Connect a local directory below to enable direct autosaving to <code>gr8r-data.json</code>, automated 5-minute recovery backups, and attachments storage.
+              </div>
+            </div>`;
+          }
+          if (needsPerm || FS_STATUS.state === 'permission_needed') {
+            return `<div class="alert warn" style="margin-bottom:20px">
+              ${ic('circle-alert', 16)}
+              <div style="line-height:1.5;flex:1">
+                <b>Read/Write Permission Required</b><br>
+                The browser needs permission to save to <b>${esc(sf.name)}</b>. Pending changes are preserved safely in memory. Click <b>Reconnect Folder</b> to grant access.
+              </div>
+              <button class="btn btn-primary btn-sm" data-a="reconnectFolder">${ic('rotate-cw', 13)}Reconnect Folder</button>
+            </div>`;
+          }
+          if (FS_STATUS.state === 'error') {
+            return `<div class="alert danger" style="margin-bottom:20px">
+              ${ic('circle-alert', 16)}
+              <div style="line-height:1.5;flex:1">
+                <b>Autosave Error: ${esc(FS_STATUS.lastError || 'Write failed')}</b><br>
+                Pending modifications are kept in memory and have not been lost. Click <b>Retry Save</b> to re-attempt writing to <code>gr8r-data.json</code>.
+              </div>
+              <button class="btn btn-danger btn-sm" data-a="retryAutosave">${ic('rotate-cw', 13)}Retry Save</button>
+            </div>`;
+          }
+          return `<div class="alert ok" style="margin-bottom:20px">
+            ${ic('circle-check', 16)}
+            <div style="line-height:1.5">
+              <b>Autosave Active — ${esc(sf.name)}</b><br>
+              Every change automatically writes to <code>gr8r-data.json</code> with a 500 ms debounce through a serialized queue. Recovery backups occur automatically every 5 minutes.
+            </div>
+          </div>`;
+        })()}
+
+        <!-- Local Folder Configuration Block -->
+        <div class="sblock" style="margin-top:0">
+          <h2>Local Folder Storage</h2>
+          <p class="muted" style="margin:4px 0 16px;font-size:var(--fs-sm);line-height:1.55">
+            Chromium File System Access API connects Gr8r Studio directly to your local computer. All projects, tasks, phases, settings, and file attachments are persisted in this folder.
+          </p>
+
+          <!-- Folder Card / Status -->
+          <div class="panel" style="padding:16px;display:flex;flex-direction:column;gap:14px;background:var(--surface)">
+            <div class="row" style="gap:12px;align-items:flex-start">
+              <span class="ftype" style="--c:${hasFolder ? (isConnected ? 'var(--green)' : 'var(--amber)') : 'var(--accent)'};width:38px;height:38px;border-radius:var(--r-sm)">
+                ${ic(hasFolder ? 'folder-check' : 'folder', 18)}
+              </span>
+              <div class="grow" style="min-width:0">
+                <div style="font-weight:600;font-size:14px;display:flex;align-items:center;gap:8px">
+                  <span class="trunc">${hasFolder ? esc(sf.name) : 'No folder selected'}</span>
+                  ${hasFolder
+                    ? isConnected
+                      ? `<span class="badge green">${ic('check', 11)}Connected (Autosave Active)</span>`
+                      : `<span class="badge amber">${ic('circle-alert', 11)}Permission Needed</span>`
+                    : `<span class="badge" style="background:var(--surface-3);color:var(--text-3)">Not Configured</span>`
+                  }
+                </div>
+                <div class="faint" style="font-size:12px;margin-top:3px">
+                  ${hasFolder
+                    ? isConnected
+                      ? `Access status: Read & write granted. Target: ${esc(sf.name)}/gr8r-data.json`
+                      : `Access status: Permission expired or revoked. Pending changes held safely in memory.`
+                    : `No local directory linked. Choose a folder to enable local filesystem autosaving.`
+                  }
+                </div>
+              </div>
+            </div>
+
+            <div class="row" style="gap:8px;border-top:1px solid var(--border);padding-top:12px;flex-wrap:wrap">
+              ${!hasFolder
+                ? `<button class="btn btn-primary" data-a="chooseFolder">${ic('folder-plus', 14)}Choose Folder</button>`
+                : `
+                  ${needsPerm ? `<button class="btn btn-primary" data-a="reconnectFolder">${ic('rotate-cw', 14)}Reconnect Folder</button>` : ''}
+                  ${FS_STATUS.state === 'error' ? `<button class="btn btn-danger" data-a="retryAutosave">${ic('rotate-cw', 14)}Retry Save</button>` : ''}
+                  <button class="btn btn-secondary" data-a="chooseFolder">${ic('folder-sync', 14)}Change Folder</button>
+                  <button class="btn btn-secondary" data-a="triggerManualBackup">${ic('archive', 14)}Backup Now</button>
+                  <button class="btn btn-ghost" data-a="disconnectFolder" style="color:var(--red);margin-left:auto">${ic('trash-2', 13)}Disconnect</button>
+                `
+              }
+            </div>
+          </div>
+        </div>
+
+        <!-- Real-Time Persistence Status & Metrics -->
+        <div class="sblock">
+          <h2>Persistence Status & Metrics</h2>
+          ${srow(
+            'Primary Autosave Status',
+            'Saves <code>gr8r-data.json</code> with 500 ms debounce after latest modification through serialized queue.',
+            (() => {
+              if (FS_STATUS.state === 'saving') return `<span class="badge accent"><span class="spin" style="display:inline-flex">${ic('loader-2', 11)}</span>Saving…</span>`;
+              if (FS_STATUS.state === 'saved') return `<span class="badge green">${ic('check', 11)}Saved Successfully</span>`;
+              if (FS_STATUS.state === 'error') return `<span class="badge red">${ic('x', 11)}Save Failed</span>`;
+              if (FS_STATUS.state === 'permission_needed') return `<span class="badge amber">${ic('circle-alert', 11)}Permission Needed</span>`;
+              return `<span class="badge" style="background:var(--surface-3);color:var(--text-3)">Idle (localStorage Active)</span>`;
+            })()
+          )}
+          ${srow(
+            'Last Successful Save',
+            'Timestamp of the most recent confirmed disk write to <code>gr8r-data.json</code>.',
+            FS_STATUS.lastSavedAt
+              ? `<span class="mono" style="font-size:12px;font-weight:600;color:var(--text)">${new Date(FS_STATUS.lastSavedAt).toLocaleString()}</span>`
+              : `<span class="faint" style="font-size:12px">None yet this session</span>`
+          )}
+          ${srow(
+            'Recovery Backups',
+            'Automated 5-minute snapshot cycle (saved to <code>/backups/recovery-backup-*.json</code>).',
+            FS_STATUS.backupStatus === 'error'
+              ? `<span class="badge red">${ic('x', 11)}Backup Failed: ${esc(FS_STATUS.lastBackupError || '')}</span>`
+              : FS_STATUS.lastBackupAt
+              ? `<span class="badge green">${ic('check', 11)}Last: ${new Date(FS_STATUS.lastBackupAt).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}</span>`
+              : `<span class="badge" style="background:var(--surface-3);color:var(--text-2)">5-min cycle active</span>`
+          )}
+          ${srow(
+            'Pending Memory Buffer',
+            'Unwritten modifications safely buffered in memory if write or permission is delayed.',
+            FS_STATUS.pendingChanges
+              ? `<span class="badge amber">${ic('circle-alert', 11)}Pending Write</span>`
+              : `<span class="badge green">${ic('check', 11)}All changes synchronized</span>`
+          )}
+          ${srow(
+            'Attachments Directory',
+            'Files are written to <code>/attachments/</code> before metadata is committed to JSON.',
+            hasFolder
+              ? `<span class="mono" style="font-size:11.5px;color:var(--accent)">${esc(sf.name)}/attachments/</span>`
+              : `<span class="faint">Folder not linked</span>`
+          )}
+        </div>
+      `
+      );
+    }
     case 'appearance':
       return (
         H('Customize how Gr8r looks on this device.') +

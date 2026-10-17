@@ -71,16 +71,8 @@ if (saved?.data?.workspaces) {
     if (w.name === 'Gr8r Studio') w.name = 'Revelation Fintech';
   });
 }
-if (saved?.data) {
-  // Clear any residual mock data from previous sessions
-  saved.data.meetings = [];
-  saved.data.contacts = [];
-  saved.data.tasks = [];
-  saved.data.projects = [];
-  saved.data.comments = [];
-  saved.data.activity = [];
-  saved.data.notifs = [];
-  saved.data.events = [];
+if (saved?.data && !saved.data.calcom) {
+  saved.data.calcom = seed().calcom;
 }
 
 export const S = {

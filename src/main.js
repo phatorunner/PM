@@ -55,9 +55,11 @@ import './features/archive.js';
 import './actions/teams.js';
 import './actions/subtasks.js';
 import './actions/archive.js';
-import { S, D } from './core/store.js';
+import { S, D, calcomState } from './core/store.js';
 import { A } from './actions/actions.js';
 import { ROUTE_NAMES, render, go } from './shell/render.js';
+import { startCalcomPolling } from './features/calcom-sync.js';
+import { startStorageEngine } from './features/fs-storage.js';
 
 (function init() {
   document.documentElement.lang = 'en';
@@ -77,7 +79,15 @@ import { ROUTE_NAMES, render, go } from './shell/render.js';
     if (activeTab) go(activeTab.route, activeTab.params);
     else go(S.prefs.home || 'home');
   }
+
+  // Auto-start Cal.com polling if settings were previously saved
+  const cal = calcomState();
+  if (cal.connected && cal.apiKey) startCalcomPolling();
+
+  // Start local filesystem storage engine (reconnects handle, schedules recovery backups & daily snapshots)
+  startStorageEngine();
 })();
 
 // Dev-only handle for debugging and screenshot tooling; stripped from production builds.
 if (import.meta.env.DEV) window.__gr8r = { S, D, A, go, render };
+

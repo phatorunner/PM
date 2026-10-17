@@ -171,6 +171,19 @@
   font-size: 11px;
   color: var(--text-3);
 }
+.kcard .phase-tag {
+  font-family: var(--mono);
+  font-size: 10px;
+  font-weight: 600;
+  padding: 1px 5px;
+  border-radius: var(--r-sm, 4px);
+  background: color-mix(in srgb, var(--accent) 15%, var(--surface-3));
+  color: var(--accent);
+  border: 1px solid color-mix(in srgb, var(--accent) 30%, transparent);
+  letter-spacing: 0.02em;
+  display: inline-flex;
+  align-items: center;
+}
 .drop-line {
   height: 2px;
   border-radius: 2px;
