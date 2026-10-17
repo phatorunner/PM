@@ -145,3 +145,4 @@ export async function playDailyMorningPrayer(onStateChange) {
     return false;
   }
 }
+
