@@ -7,7 +7,6 @@ import { ic } from '../core/icons.js';
 import { S } from '../core/store.js';
 import { render } from '../shell/render.js';
 import { A, IN, KEY } from '../actions/actions.js';
-import { getActiveBibleVerse } from '../features/bible-verse.js';
 
 export const AGENTS_LIST = [
   {
@@ -50,7 +49,6 @@ export function pageAgents() {
   const msgs = agentsState.messages;
   const thinking = agentsState.isThinking;
 
-  const verse = getActiveBibleVerse();
   return `<div class="page flush" style="display:flex;flex-direction:column;height:100%;min-height:100%;position:relative;background:var(--bg)">
 
     ${
@@ -58,18 +56,6 @@ export function pageAgents() {
         ? `<!-- Centered Linear-Style Command View -->
         <div style="flex:1;display:flex;flex-direction:column;align-items:center;justify-content:center;padding:24px var(--gutter);max-width:720px;width:100%;margin:0 auto">
           
-          <!-- Prominent Rotating Bible Verse (YourVision API) -->
-          <a
-            href="${esc(verse.url)}"
-            target="_blank"
-            rel="noopener noreferrer"
-            class="agent-verse-headline"
-            aria-label="Read ${esc(verse.ref)} on Bible.com"
-          >
-            <h1>“${esc(verse.text)}”</h1>
-            <div class="agent-verse-ref">${esc(verse.ref)}</div>
-          </a>
-
           <!-- Large Input Capsule -->
           <div class="agent-capsule" style="width:100%;padding:14px 16px;display:flex;flex-direction:column;gap:12px">
             <textarea
