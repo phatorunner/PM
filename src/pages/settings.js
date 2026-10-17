@@ -443,7 +443,7 @@ export function settingsBody(sec, title) {
           ${srow(
             'Model & Endpoint',
             'Target model architecture configured for native audio output.',
-            `<span class="mono" style="font-size:12px;color:var(--text)">gemini-3.8-flash (Fenrir deep voice)</span>`
+            `<span class="mono" style="font-size:12px;color:var(--text)">gemini-3.8-flash-tts (Puck voice)</span>`
           )}
         </div>
       `
