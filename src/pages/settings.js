@@ -463,7 +463,7 @@ export function settingsBody(sec, title) {
         .map(([k, n]) => {
           const L = { bg: '#FBFAF8', s: '#F2F1EE', t: '#1D1C1A', b: '#E3E1DC', a: '#4B5BD6' },
             Dk = { bg: '#050505', s: '#0A0A0B', t: '#F0F0F3', b: '#1A1A1D', a: '#8E9AF3' },
-            Ph = { bg: '#09090B', s: '#0F0F12', t: '#F4F4F5', b: '#23232B', a: '#8E9AF3' },
+            Ph = { bg: '#090909', s: '#050505', t: '#F2F2F2', b: '#1C1C1C', a: '#8E9AF3' },
             Rev = { bg: '#191919', s: '#111111', t: '#F3F3F4', b: '#292929', a: '#8E9AF3' };
           const pv = c =>
             `<div class="s" style="background:${c.s}"><i style="background:${c.b};width:70%"></i><i style="background:${c.a};width:55%"></i><i style="background:${c.b};width:80%"></i><i style="background:${c.b};width:60%"></i></div><div class="m" style="background:${c.bg}"><i style="background:${c.t};width:45%;height:7px"></i><i style="background:${c.b}"></i><i style="background:${c.b};width:80%"></i><i style="background:${c.a};width:30%;height:10px;margin-top:4px"></i></div>`;

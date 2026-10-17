@@ -178,21 +178,21 @@
   color-scheme: dark;
 }
 :root[data-theme='phato'] {
-  --bg: #09090b;
-  --bg-side: #0f0f12;
-  --surface: #141418;
-  --surface-2: #1c1c22;
-  --surface-3: #24242c;
-  --sunken: #0c0c0e;
+  --bg: #090909;
+  --bg-side: #050505;
+  --surface: #0f0f0f;
+  --surface-2: #151515;
+  --surface-3: #1c1c1c;
+  --sunken: #060606;
   --overlay: rgba(0, 0, 0, 0.8);
-  --border: #23232b;
-  --border-strong: #32323e;
-  --divider: #1a1a20;
-  --text: #f4f4f5;
-  --text-2: #a1a1aa;
-  --text-3: #71717a;
-  --text-4: #52525b;
-  --text-inv: #09090b;
+  --border: #1c1c1c;
+  --border-strong: #2c2c2c;
+  --divider: #151515;
+  --text: #f2f2f2;
+  --text-2: #a3a3a3;
+  --text-3: #737373;
+  --text-4: #525252;
+  --text-inv: #000000;
   --accent: var(--acc-d);
   --on-accent: #000000;
   --green: #4ade80;
