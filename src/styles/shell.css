@@ -711,8 +711,11 @@ h3.sub {
   box-shadow: 0 4px 14px rgba(255, 255, 255, 0.25);
 }
 
-/* Agent Chat Seamless Capsule */
+/* Agent Chat Seamless Capsule & Cult UI Border Beam */
 .agent-capsule {
+  position: relative;
+  isolation: isolate;
+  overflow: hidden;
   background: var(--surface);
   border: 1px solid var(--border-strong);
   border-radius: 12px;
@@ -724,6 +727,43 @@ h3.sub {
   outline: none !important;
   box-shadow: 0 8px 32px rgba(0, 0, 0, 0.6) !important;
 }
+
+.border-beam {
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 35%;
+  height: 2px;
+  pointer-events: none;
+  border-radius: 999px;
+  background: linear-gradient(
+    90deg,
+    transparent,
+    #5eead4,
+    #ffffff,
+    #5eead4,
+    transparent
+  );
+  box-shadow: 0 0 8px rgba(94, 234, 212, 0.65);
+  animation: border-beam-travel 3s linear infinite;
+}
+
+@keyframes border-beam-travel {
+  from {
+    transform: translateX(-110%);
+  }
+  to {
+    transform: translateX(310%);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .border-beam {
+    animation: none;
+    left: 32.5%;
+  }
+}
+
 .agent-textarea,
 .agent-textarea:focus,
 .agent-textarea:hover,

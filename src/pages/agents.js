@@ -58,6 +58,7 @@ export function pageAgents() {
           
           <!-- Large Input Capsule -->
           <div class="agent-capsule" style="width:100%;padding:14px 16px;display:flex;flex-direction:column;gap:12px">
+            <span class="border-beam" aria-hidden="true"></span>
             <textarea
               id="agents-input"
               class="agent-textarea"
@@ -204,6 +205,7 @@ export function pageAgents() {
         <!-- Sticky Bottom Chat Capsule -->
         <div style="padding:16px var(--gutter) 24px;background:transparent">
           <div class="agent-capsule" style="max-width:800px;margin:0 auto;padding:12px 14px">
+            <span class="border-beam" aria-hidden="true"></span>
             <textarea
               id="agents-input"
               class="agent-textarea"
