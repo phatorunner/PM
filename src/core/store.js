@@ -28,7 +28,7 @@ export const SIDEBAR_PAGES = [
   ]},
 ];
 export const DEFAULT_PREFS = {
-  theme: 'revelation',
+  theme: 'phato',
   accent: 'indigo',
   side: 'comfortable',
   density: 'comfortable',
@@ -58,6 +58,7 @@ export function load() {
 export const saved = load();
 if (saved?.prefs) {
   if (saved.prefs.home === 'home' || saved.prefs.home === 'agents' || !saved.prefs.home) saved.prefs.home = 'welcome';
+  if (!saved.prefs.theme || saved.prefs.theme === 'revelation') saved.prefs.theme = 'phato';
 }
 if (saved?.prefs?.name === 'Tanjim Islam') saved.prefs.name = 'Phato';
 if (saved?.data?.members) {

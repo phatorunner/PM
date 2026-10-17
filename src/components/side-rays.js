@@ -197,18 +197,28 @@ const link = gl => {
 };
 
 let activeInstance = null;
+let savedRayState = null;
 
 export function initSideRays(container, options = {}) {
   if (!container) return null;
 
-  // Cleanup existing instance if already bound to the same canvas
+  // If container already contains canvas running activeInstance, do not restart
+  if (activeInstance && activeInstance.canvas && activeInstance.canvas.parentElement === container) {
+    return activeInstance;
+  }
+
+  // Cleanup existing instance if already bound elsewhere
   if (activeInstance) {
+    // Save state before destroy so time and reveal persist seamlessly
+    savedRayState = activeInstance.getState ? activeInstance.getState() : null;
     activeInstance.destroy();
     activeInstance = null;
   }
 
-  const canvas = container.querySelector('canvas.side-rays__canvas') || document.createElement('canvas');
-  if (!canvas.parentElement) {
+  // Check if persistent canvas exists in container or can be reused
+  let canvas = container.querySelector('canvas.side-rays__canvas');
+  if (!canvas) {
+    canvas = document.createElement('canvas');
     canvas.className = 'side-rays__canvas';
     canvas.setAttribute('aria-hidden', 'true');
     container.appendChild(canvas);
@@ -275,8 +285,8 @@ export function initSideRays(container, options = {}) {
   const pointer = { x: 0, y: 0, inside: false };
   const aim = { value: 0, velocity: 0 };
   const focus = { angle: 0, strength: 0 };
-  let time = Math.random() * 100;
-  let reveal = s.intro && !reduced ? 0 : 1;
+  let time = savedRayState?.time ?? Math.random() * 100;
+  let reveal = savedRayState?.reveal != null ? savedRayState.reveal : (s.intro && !reduced ? 0 : 1);
   let raf = 0;
   let last = 0;
   let visible = true;
@@ -430,6 +440,8 @@ export function initSideRays(container, options = {}) {
   wake();
 
   const instance = {
+    canvas,
+    getState: () => ({ time, reveal }),
     destroy: () => {
       cancelAnimationFrame(raf);
       resizeObserver.disconnect();
