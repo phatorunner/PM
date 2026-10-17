@@ -30,6 +30,22 @@ document.addEventListener(
       S.ui.mention = null;
       if (!el) render();
     }
+    // Global drawer & slide-out panel dismissal when clicking outside
+    if (S.ui.drawer && !e.target.closest('.drawer') && !e.target.closest('[data-pop-root]')) {
+      const isDrawerOpener = el && (el.dataset.a === 'openTask' || el.dataset.a === 'editTask' || el.dataset.a === 'newTask' || el.dataset.a === 'closeDrawer');
+      if (!isDrawerOpener) {
+        A.closeDrawer();
+        if (!el) return;
+      }
+    }
+    // Mobile slide-out navigation dismissal when clicking outside
+    if (S.ui.mnav && !e.target.closest('.side') && !e.target.closest('#mnav-btn')) {
+      const isNavTrigger = el && (el.dataset.a === 'openMnav' || el.dataset.a === 'closeMnav');
+      if (!isNavTrigger) {
+        A.closeMnav();
+        if (!el) return;
+      }
+    }
     if (!el) return;
     if (el.tagName === 'BUTTON' || (el.tagName === 'INPUT' && el.type === 'checkbox' && el.dataset.a)) e.preventDefault();
     const fn = A[el.dataset.a];
