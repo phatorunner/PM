@@ -2441,6 +2441,11 @@ A.onbSet = el => {
   }
   render();
 };
+IN.onbName = el => {
+  S.ui.onbData.name = el.value;
+  if (S.ui.errors.name && el.value.trim()) S.ui.errors.name = null;
+  render();
+};
 IN.onbWs = el => {
   const o = S.ui.onbData;
   o.ws = el.value;
@@ -2473,23 +2478,21 @@ A.onbBack = () => {
 };
 A.onbNext = el => {
   const o = S.ui.onbData;
-  if (S.ui.onb === 1 && !o.ws.trim()) {
+  if (S.ui.onb === 0 && !o.name?.trim()) {
+    S.ui.errors.name = 'Please enter your name to continue';
+    render();
+    $('#o-name')?.focus();
+    return;
+  }
+  if (S.ui.onb === 2 && !o.ws.trim()) {
     S.ui.errors.ws = 'Name your workspace to continue';
     render();
     $('#o-ws')?.focus();
     return;
   }
-  if (S.ui.onb === 3 && !o.proj.trim()) {
+  if (S.ui.onb === 4 && !o.proj.trim()) {
     toast('Give your project a name', { kind: 'err' });
     return;
-  }
-  if (S.ui.onb === 4 && el.dataset.skip) o.invites = '';
-  if (S.ui.onb === 4 && !el.dataset.skip) {
-    const bad = (o.invites || '').split(',').filter(x => x && !EMAIL_RE.test(x));
-    if (bad.length) {
-      toast(`${bad[0]} isn't a valid email address`, { kind: 'err' });
-      return;
-    }
   }
   S.ui.onb++;
   render();
@@ -2497,18 +2500,19 @@ A.onbNext = el => {
 };
 A.onbExit = () => {
   S.ui.auth = null;
+  localStorage.setItem('gr8r_onb_done', 'true');
   render();
 };
 A.onbFinish = () => {
   const o = S.ui.onbData;
   let p;
   mutate(() => {
-    if (S.ui.af?.name?.trim()) {
-      S.prefs.name = S.ui.af.name.trim();
+    const chosenName = o.name?.trim() || S.ui.af?.name?.trim() || '';
+    if (chosenName) {
+      S.prefs.name = chosenName;
       const curMe = me();
       if (curMe) {
-        curMe.name = S.ui.af.name.trim();
-        if (S.ui.af.email?.trim()) curMe.email = S.ui.af.email.trim();
+        curMe.name = chosenName;
       }
     }
     if (o.ws.trim()) {
@@ -2529,27 +2533,11 @@ A.onbFinish = () => {
       },
       tm.id,
     );
-    (o.invites || '')
-      .split(',')
-      .filter(x => EMAIL_RE.test(x))
-      .forEach(e =>
-        D().members.push({
-          id: uid('m'),
-          name: e.split('@')[0].replace(/\b\w/g, c => c.toUpperCase()),
-          email: e,
-          role: 'Member',
-          team: me().team,
-          title: 'Member',
-          c: '#6B7280',
-          status: 'invited',
-          last: null,
-          tz: '—',
-        }),
-      );
   });
   S.ui.auth = null;
-  go('project', { id: p.id, tab: S.prefs.defaultTab });
-  toast(`Welcome to ${D().ws.name}`);
+  localStorage.setItem('gr8r_onb_done', 'true');
+  go('welcome');
+  toast(`Welcome${o.name?.trim() ? ', ' + o.name.trim() : ''}!`);
 };
 
 /* =====================================================================

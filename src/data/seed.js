@@ -4,11 +4,11 @@ export function seed() {
   const members = [
     {
       id: 'm1',
-      name: 'Phato',
-      email: 'hello@gr8rstudio.com',
+      name: '',
+      email: '',
       role: 'Owner',
       team: '',
-      title: 'Workspace Owner',
+      title: '',
       c: '#5A67D8',
       status: 'active',
       last: 0,

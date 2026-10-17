@@ -39,8 +39,8 @@ export const DEFAULT_PREFS = {
   motion: 'system',
   home: 'welcome',
   openTasks: 'drawer',
-  name: 'Phato',
-  title: 'Workspace Owner',
+  name: '',
+  title: '',
   sidebarHidden: {},
 };
 export function load() {
@@ -86,10 +86,10 @@ export const S = {
   views: saved?.views || {},
   ui: {
     fx: {},
-    auth: null,
+    auth: !saved && !localStorage.getItem('gr8r_onb_done') ? 'onboarding' : null,
     authStep: 'login',
     onb: 0,
-    onbData: { use: 'product', team: 'kanban', size: '2-10', ws: '', proj: 'Website Launch', tmpl: 'web', invites: '' },
+    onbData: { name: '', use: 'product', team: 'kanban', size: 'Just me', ws: '', proj: 'My First Project', tmpl: 'blank', invites: '' },
     route: saved?.browserTabs?.find(t => t.id === saved?.activeTabId)?.route || 'home',
     params: saved?.browserTabs?.find(t => t.id === saved?.activeTabId)?.params || {},
     history: [],

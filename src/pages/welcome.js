@@ -11,51 +11,31 @@ import { render } from '../shell/render.js';
 export const WELCOME_EXAMPLES = [
   {
     id: 'morning-prayer',
-    title: 'Start with morning prayer',
+    title: 'Morning prayer',
     desc: 'Listen to an uplifting, peaceful prayer generated with Gemini AI',
-    icon: 'sunrise',
     prompt: 'Heavenly Father, thank You for the gift of today. Guide my thoughts, bless my hands, and grant me wisdom and diligence in every task I set out to accomplish today. Amen.',
     action: 'prayer',
   },
   {
-    id: 'scripture-reflection',
-    title: 'Daily scripture meditation',
-    desc: 'Reflect deeply on God’s promises and today’s verse',
-    icon: 'book-open',
-    prompt: 'How can I apply today’s verse to my daily challenges and interactions with others?',
-    action: 'verse',
+    id: 'strength-guidance',
+    title: 'Strength and focus',
+    desc: 'Seek peace and clarity amidst deadlines and complex tasks',
+    prompt: 'Lord, grant me strength when weary, clarity in decision-making, and patience through unexpected hurdles.',
+    action: 'prayer-text',
   },
   {
-    id: 'strength-guidance',
-    title: 'Prayer for strength & focus',
-    desc: 'Seek peace and clarity amidst deadlines and complex tasks',
-    icon: 'shield',
-    prompt: 'Lord, grant me strength when weary, clarity in decision-making, and patience through unexpected hurdles.',
+    id: 'peace-rest',
+    title: 'Peace and restful mind',
+    desc: 'Cast all your anxieties upon Him, for He cares for you',
+    prompt: 'Peace I leave with you; my peace I give you. I do not give to you as the world gives. Do not let your hearts be troubled and do not be afraid.',
     action: 'prayer-text',
   },
   {
     id: 'gratitude-journal',
     title: 'Evening thanksgiving',
     desc: 'Give thanks for victories, answered prayers, and growth today',
-    icon: 'sunset',
     prompt: 'Thank You Lord for walking with me through this day and blessing the fruit of our labor.',
     action: 'prayer-text',
-  },
-  {
-    id: 'work-excellence',
-    title: 'Heart for excellence',
-    desc: 'Commit to doing all things heartily as unto the Lord',
-    icon: 'compass',
-    prompt: 'Whatever you do, work at it with all your heart, as working for the Lord, not for human masters.',
-    action: 'verse',
-  },
-  {
-    id: 'peace-rest',
-    title: 'Peace & restful mind',
-    desc: 'Cast all your anxieties upon Him, for He cares for you',
-    icon: 'heart',
-    prompt: 'Peace I leave with you; my peace I give you. I do not give to you as the world gives. Do not let your hearts be troubled and do not be afraid.',
-    action: 'verse',
   },
 ];
 
@@ -69,7 +49,7 @@ export function pageWelcome() {
     <div id="welcome-rays" class="side-rays welcome-rays-bg" style="position:absolute;inset:0;width:100%;height:100%;pointer-events:none"></div>
 
     <!-- Centered Clean Linear-Style View -->
-    <div style="flex:1;display:flex;flex-direction:column;align-items:center;justify-content:center;padding:24px var(--gutter);max-width:760px;width:100%;margin:0 auto;position:relative;z-index:1">
+    <div style="flex:1;display:flex;flex-direction:column;align-items:center;justify-content:center;padding:24px var(--gutter);max-width:880px;width:100%;margin:0 auto;position:relative;z-index:1">
       
       <!-- Prominent Rotating Bible Verse (YourVision API) -->
       <a
@@ -84,17 +64,14 @@ export function pageWelcome() {
         <div class="agent-verse-ref">${esc(verse.ref)}</div>
       </a>
 
-      <!-- 6 Curated Example Options / Devotional Cards -->
-      <div style="width:100%;margin-bottom:12px;display:flex;align-items:center;justify-content:space-between">
-        <span class="faint" style="font-size:12px;font-weight:500;letter-spacing:0.02em">Get started with prayer and reflection</span>
-        ${
-          isPrayerPlaying
-            ? `<span class="badge accent" style="display:inline-flex;align-items:center;gap:5px;font-size:11px">${ic('volume-2', 12)}Playing Morning Prayer</span>`
-            : ''
-        }
-      </div>
+      <!-- Curated Example Options / Devotional Cards (Single horizontal row of 4) -->
+      ${
+        isPrayerPlaying
+          ? `<div style="width:100%;margin-bottom:12px;display:flex;justify-content:flex-end"><span class="badge accent" style="display:inline-flex;align-items:center;gap:5px;font-size:11px">${ic('volume-2', 12)}Playing Morning Prayer</span></div>`
+          : ''
+      }
 
-      <div style="display:grid;grid-template-columns:repeat(3, 1fr);gap:12px;width:100%">
+      <div style="display:grid;grid-template-columns:repeat(4, 1fr);gap:14px;width:100%">
         ${WELCOME_EXAMPLES.map(ex => {
           const isMorningPrayer = ex.id === 'morning-prayer';
           const cardLoading = isMorningPrayer && isPrayerLoading;
@@ -102,17 +79,20 @@ export function pageWelcome() {
 
           let displayTitle = ex.title;
           let displayDesc = ex.desc;
-          let displayIcon = ex.icon;
 
           if (cardLoading) {
             displayTitle = 'Preparing prayer…';
             displayDesc = 'Generating peaceful audio via Gemini AI Studio…';
-            displayIcon = 'loader-2';
           } else if (cardPlaying) {
             displayTitle = 'Playing Morning Prayer';
             displayDesc = 'Listening to today’s peaceful morning prayer…';
-            displayIcon = 'volume-2';
           }
+
+          const photoHtml = ex.image
+            ? `<img src="${esc(ex.image)}" alt="${esc(displayTitle)}" style="width:100%;height:100%;object-fit:cover;display:block;transition:transform 0.3s ease" />`
+            : `<div class="preset-photo-placeholder" style="width:100%;height:100%;background:linear-gradient(145deg, var(--surface-2), var(--surface-3));display:flex;align-items:center;justify-content:center;position:relative;overflow:hidden">
+                <div style="position:absolute;inset:0;background:radial-gradient(circle at 30% 30%, rgba(255,255,255,0.04), transparent 70%)"></div>
+              </div>`;
 
           return `
           <div
@@ -122,15 +102,27 @@ export function pageWelcome() {
             role="button"
             tabindex="0"
             aria-disabled="${cardLoading}"
-            style="background:var(--surface);border:1px solid ${cardPlaying ? 'var(--accent)' : 'var(--border)'};border-radius:10px;padding:16px;cursor:${cardLoading ? 'wait' : 'pointer'};display:flex;flex-direction:column;gap:8px;text-align:left;transition:background var(--dur), border-color var(--dur);box-shadow:var(--shadow-sm);opacity:${cardLoading ? '0.75' : '1'};pointer-events:${cardLoading ? 'none' : 'auto'}"
-            onmouseover="if(!${cardLoading}){this.style.borderColor='var(--border-strong)';this.style.background='var(--surface-2)'}"
-            onmouseout="if(!${cardLoading}){this.style.borderColor='${cardPlaying ? 'var(--accent)' : 'var(--border)'}';this.style.background='var(--surface)'}"
+            style="width:100%;aspect-ratio:2 / 3;position:relative;background:var(--surface);border:1px solid ${cardPlaying ? 'var(--accent)' : 'var(--border)'};border-radius:14px;overflow:hidden;cursor:${cardLoading ? 'wait' : 'pointer'};display:flex;flex-direction:column;justify-content:flex-end;text-align:left;transition:background var(--dur), border-color var(--dur), transform var(--dur), box-shadow var(--dur);box-shadow:var(--shadow-sm);opacity:${cardLoading ? '0.75' : '1'};pointer-events:${cardLoading ? 'none' : 'auto'}"
+            onmouseover="if(!${cardLoading}){this.style.borderColor='var(--border-strong)';this.style.transform='translateY(-3px)';this.style.boxShadow='var(--shadow-pop)'}"
+            onmouseout="if(!${cardLoading}){this.style.borderColor='${cardPlaying ? 'var(--accent)' : 'var(--border)'}';this.style.transform='none';this.style.boxShadow='var(--shadow-sm)'}"
           >
-            <div style="color:var(--accent);display:flex;align-items:center;gap:6px">
-              <span class="${cardLoading ? 'spin' : ''}" style="display:inline-flex">${ic(displayIcon, 16)}</span>
+            <!-- 2:3 Background Photo / Texture Layer -->
+            <div style="position:absolute;inset:0;width:100%;height:100%;z-index:0;overflow:hidden">
+              ${photoHtml}
             </div>
-            <div style="font-size:13.5px;font-weight:600;color:var(--text);line-height:1.3">${esc(displayTitle)}</div>
-            <div class="faint" style="font-size:11.5px;line-height:1.4">${esc(displayDesc)}</div>
+
+            <!-- Dark Gradient Vignette for Text Legibility -->
+            <div style="position:absolute;inset:0;background:linear-gradient(to top, rgba(0,0,0,0.85) 0%, rgba(0,0,0,0.45) 45%, rgba(0,0,0,0.05) 80%);z-index:1;pointer-events:none"></div>
+
+            <!-- Loading / Playing Overlays -->
+            ${cardLoading ? `<div style="position:absolute;inset:0;background:rgba(0,0,0,0.65);display:flex;align-items:center;justify-content:center;color:var(--accent);z-index:3"><span class="spin" style="display:inline-flex">${ic('loader-2', 26)}</span></div>` : ''}
+            ${cardPlaying ? `<div style="position:absolute;top:10px;right:10px;background:var(--accent);color:#000;border-radius:20px;padding:3px 8px;font-size:10px;font-weight:700;display:flex;align-items:center;gap:4px;z-index:3">${ic('volume-2', 11)}LIVE</div>` : ''}
+
+            <!-- Text & Subtext Overlaid at the Bottom -->
+            <div style="position:relative;z-index:2;padding:14px 12px;display:flex;flex-direction:column;gap:4px">
+              <div style="font-size:13.5px;font-weight:600;color:#ffffff;line-height:1.25;text-shadow:0 1px 3px rgba(0,0,0,0.6)">${esc(displayTitle)}</div>
+              <div style="font-size:11px;line-height:1.35;color:rgba(255,255,255,0.72);text-shadow:0 1px 2px rgba(0,0,0,0.6)">${esc(displayDesc)}</div>
+            </div>
           </div>
         `;
         }).join('')}

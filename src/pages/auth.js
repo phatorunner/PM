@@ -81,13 +81,26 @@ export function renderAuth() {
 export function renderOnboarding() {
   const st = S.ui.onb;
   const o = S.ui.onbData;
-  const N = 6;
+  const N = 7;
   const nav = (next = 'Continue', skip = false) =>
-    `<div class="row" style="margin-top:6px">${st > 0 && st < 5 ? `<button class="btn btn-ghost" data-a="onbBack">${ic('arrow-left', 14)}Back</button>` : ''}<span class="sp"></span>${skip ? `<button class="btn btn-ghost" data-a="onbNext" data-skip="1">Skip for now</button>` : ''}<button class="btn btn-primary btn-lg" data-a="onbNext" id="onb-next">${next}${ic('arrow-right', 15)}</button></div>`;
+    `<div class="row" style="margin-top:6px">${st > 0 && st < 6 ? `<button class="btn btn-ghost" data-a="onbBack">${ic('arrow-left', 14)}Back</button>` : ''}<span class="sp"></span>${skip ? `<button class="btn btn-ghost" data-a="onbNext" data-skip="1">Skip for now</button>` : ''}<button class="btn btn-primary btn-lg" data-a="onbNext" id="onb-next">${next}${ic('arrow-right', 15)}</button></div>`;
   const opt = (k, v, icon, n, s) =>
     `<button class="opt ${o[k] === v ? 'on' : ''}" role="radio" aria-checked="${o[k] === v}" data-a="onbSet" data-k="${k}" data-v="${v}">${ic(icon, 18)}<b>${n}</b>${s ? `<span>${s}</span>` : ''}</button>`;
   let body;
-  if (st === 0)
+
+  // Step 0: Welcome & Your Name (Blank by default, saved to local profile)
+  if (st === 0) {
+    const e = S.ui.errors.name;
+    body = `<h1>Welcome to HanhPM</h1><p class="sub">Let's set up your personal profile and workspace.</p>
+    <div class="field"><label class="label" for="o-name">What should we call you?</label>
+      <input class="input input-lg ${e ? 'is-error' : ''}" id="o-name" data-in="onbName" value="${esc(o.name || '')}" placeholder="Enter your full name" autofocus>
+      ${e ? `<span class="err">${ic('circle-alert', 12)}${e}</span>` : '<span class="hint">Your name will be saved locally on this browser.</span>'}
+    </div>
+    ${nav('Get started')}`;
+  }
+
+  // Step 1: Work Focus
+  if (st === 1) {
     body = `<h1>What are you working on?</h1><p class="sub">We'll tailor templates and views to fit. You can change this later.</p><div class="opts" role="radiogroup">${[
       ['product', 'target', 'Product', 'Roadmaps & launches'],
       ['design', 'palette', 'Design', 'Reviews & handoff'],
@@ -98,14 +111,19 @@ export function renderOnboarding() {
     ]
       .map(x => opt('use', ...x))
       .join('')}</div>${nav()}`;
-  if (st === 1) {
-    const e = S.ui.errors.ws;
-    body = `<h1>Create your workspace</h1><p class="sub">A workspace is where your team's projects live.</p>
-    <div class="field"><label class="label" for="o-ws">Workspace name</label><input class="input input-lg ${e ? 'is-error' : ''}" id="o-ws" data-in="onbWs" value="${esc(o.ws)}" placeholder="e.g. HanhPM Workspace" autofocus>${e ? `<span class="err">${ic('circle-alert', 12)}${e}</span>` : ''}</div>
-    <div class="field"><label class="label" for="o-url">Workspace URL</label><div class="row" style="gap:0"><span class="input input-lg" style="width:auto;background:var(--surface-2);border-right:0;border-radius:6px 0 0 6px;display:flex;align-items:center;color:var(--text-2)">hanhpm.app/</span><input class="input input-lg" id="o-url" value="${esc(o.url || '')}" data-in="onbUrl" style="border-radius:0 6px 6px 0" placeholder="hanhpm"></div>${o.url ? `<span class="hint" style="color:var(--green);display:flex;gap:4px;align-items:center">${ic('check', 12)}hanhpm.app/${esc(o.url)} is available</span>` : ''}</div>${nav()}`;
   }
-  if (st === 2)
-    body = `<h1>How does your team work?</h1><p class="sub">We'll set your default project view.</p><div class="opts" role="radiogroup" style="grid-template-columns:repeat(2,minmax(0,1fr))">${[
+
+  // Step 2: Create Workspace (Blank by default)
+  if (st === 2) {
+    const e = S.ui.errors.ws;
+    body = `<h1>Create your workspace</h1><p class="sub">A workspace is where your personal projects and tasks live.</p>
+    <div class="field"><label class="label" for="o-ws">Workspace name</label><input class="input input-lg ${e ? 'is-error' : ''}" id="o-ws" data-in="onbWs" value="${esc(o.ws || '')}" placeholder="e.g. My Studio" autofocus>${e ? `<span class="err">${ic('circle-alert', 12)}${e}</span>` : ''}</div>
+    <div class="field"><label class="label" for="o-url">Workspace URL</label><div class="row" style="gap:0"><span class="input input-lg" style="width:auto;background:var(--surface-2);border-right:0;border-radius:6px 0 0 6px;display:flex;align-items:center;color:var(--text-2)">hanhpm.app/</span><input class="input input-lg" id="o-url" value="${esc(o.url || '')}" data-in="onbUrl" style="border-radius:0 6px 6px 0" placeholder="workspace"></div>${o.url ? `<span class="hint" style="color:var(--green);display:flex;gap:4px;align-items:center">${ic('check', 12)}hanhpm.app/${esc(o.url)} is available</span>` : ''}</div>${nav()}`;
+  }
+
+  // Step 3: Default Layout
+  if (st === 3) {
+    body = `<h1>How do you like to organize?</h1><p class="sub">Choose your default project layout.</p><div class="opts" role="radiogroup" style="grid-template-columns:repeat(2,minmax(0,1fr))">${[
       ['kanban', 'square-kanban', 'Boards', 'Move cards through stages'],
       ['list', 'list-checks', 'Lists', 'Checklists and priorities'],
       ['timeline', 'chart-gantt', 'Timelines', 'Plan with dates & dependencies'],
@@ -114,28 +132,63 @@ export function renderOnboarding() {
       .map(x => opt('team', ...x))
       .join('')}</div>
     <div class="field"><span class="label">Team size</span><div class="seg" style="width:fit-content">${['Just me', '2-10', '11-50', '51-200', '200+'].map(s => `<button class="${o.size === s ? 'on' : ''}" data-a="onbSet" data-k="size" data-v="${s}">${s}</button>`).join('')}</div></div>${nav()}`;
-  if (st === 3)
-    body = `<h1>Create your first project</h1><p class="sub">Start from a template or a blank project.</p><div class="field"><label class="label" for="o-proj">Project name</label><input class="input input-lg" id="o-proj" data-in="onbProj" value="${esc(o.proj)}" autofocus></div><div class="tmpls" role="radiogroup">${TEMPLATES.filter(
+  }
+
+  // Step 4: First Project
+  if (st === 4) {
+    body = `<h1>Create your first project</h1><p class="sub">Start from a template or a blank project.</p><div class="field"><label class="label" for="o-proj">Project name</label><input class="input input-lg" id="o-proj" data-in="onbProj" value="${esc(o.proj || '')}" placeholder="e.g. My First Project" autofocus></div><div class="tmpls" role="radiogroup">${TEMPLATES.filter(
       t => t.id !== 'blank',
     )
       .map(t => opt('tmpl', t.id, t.icon, t.name, t.tasks.length + ' starter tasks'))
       .join('')}</div>${nav()}`;
-  if (st === 4)
-    body = `<h1>Invite your team</h1><p class="sub">HanhPM works best with your teammates. They'll get an email invite.</p><div class="col" style="gap:8px">${[0, 1, 2].map(i => `<input class="input input-lg" id="o-inv-${i}" placeholder="teammate@company.com" type="email" value="${esc((o.invites || '').split(',')[i] || '')}" data-in="onbInv" data-i="${i}" aria-label="Teammate email ${i + 1}">`).join('')}</div><button class="btn btn-ghost btn-sm" style="align-self:flex-start" data-a="copyInviteLink">${ic('link', 13)}Copy invite link instead</button>${nav('Send invites', true)}`;
+  }
+
+  // Step 5: Browser & Local Storage Requirement Step
   if (st === 5) {
-    const n = (o.invites || '').split(',').filter(x => x.includes('@')).length;
+    body = `<h1>Browser & Local Storage</h1><p class="sub">Important instructions for saving your data safely.</p>
+    
+    <div class="alert info" style="margin-bottom:14px;align-items:flex-start;line-height:1.45">
+      <span style="color:var(--blue);margin-top:2px">${ic('globe', 18)}</span>
+      <div>
+        <b style="color:var(--text)">Please open in Microsoft Edge (or Google Chrome)</b>
+        <div class="faint" style="font-size:12px;margin-top:2px">HanhPM uses the native File System Access API so your tasks and data save directly onto your own computer disk. This works best in Microsoft Edge.</div>
+      </div>
+    </div>
+
+    <div class="alert" style="margin-bottom:14px;align-items:flex-start;line-height:1.45;border-color:var(--border)">
+      <span style="color:var(--accent);margin-top:2px">${ic('folder', 18)}</span>
+      <div>
+        <b style="color:var(--text)">Choose a folder in Settings to save your data</b>
+        <div class="faint" style="font-size:12px;margin-top:2px">Once you complete setup, please go to <b>Settings → Storage</b> and click <b>“Choose folder”</b> to select a file folder on your computer for automatic saving.</div>
+      </div>
+    </div>
+
+    <div class="alert warning" style="margin-bottom:18px;align-items:flex-start;line-height:1.45">
+      <span style="color:var(--amber);margin-top:2px">${ic('users', 18)}</span>
+      <div>
+        <b style="color:var(--text)">Team invites notice</b>
+        <div class="faint" style="font-size:12px;margin-top:2px">Please note that member invites and adding team members are currently disabled and not working at the moment. All data operates in local-first standalone mode.</div>
+      </div>
+    </div>
+
+    ${nav('I understand, continue')}`;
+  }
+
+  // Step 6: Confirmation & Finish
+  if (st === 6) {
     body = `<div style="display:flex;justify-content:center"><span class="ftype ready-badge" style="--c:var(--green);width:48px;height:48px;border-radius:12px">${ic('circle-check', 22)}</span></div><h1>Your workspace is ready</h1><p class="sub">Here's what we set up for you.</p>
     <div class="panel">${[
-      ['building-2', `Workspace “${esc(o.ws || 'My Workspace')}”`, 'gr8rstudio.com/' + esc(o.url || 'workspace')],
+      ['user', `Account: ${esc(o.name || 'Owner')}`, 'Saved to your browser profile'],
+      ['building-2', `Workspace “${esc(o.ws || 'My Workspace')}”`, 'hanhpm.app/' + esc(o.url || 'workspace')],
       [
         TEMPLATES.find(t => t.id === o.tmpl)?.icon || 'folder',
-        `Project “${esc(o.proj)}”`,
+        `Project “${esc(o.proj || 'My Project')}”`,
         `${TEMPLATES.find(t => t.id === o.tmpl)?.tasks.length || 0} starter tasks · ${{ kanban: 'Board', list: 'List', timeline: 'Timeline', table: 'Table' }[o.team]} view`,
       ],
       [
-        'user-plus',
-        n ? `${n} invite${n > 1 ? 's' : ''} sent` : 'No invites yet',
-        n ? "They'll appear in Members once they join" : 'Invite people any time from the sidebar',
+        'folder-sync',
+        'Local File Storage',
+        'Head to Settings to connect a folder to save all data',
       ],
     ]
       .map(
@@ -145,8 +198,9 @@ export function renderOnboarding() {
       .join('')}</div>
     <button class="btn btn-primary btn-lg btn-block" data-a="onbFinish">Open workspace${ic('arrow-right', 15)}</button>`;
   }
+
   return authShell(
-    `<div class="auth-card onb${S.ui.fx.step ? ' fx-step' : ''}" style="max-width:${st === 5 ? 440 : 560}px">
+    `<div class="auth-card onb${S.ui.fx.step ? ' fx-step' : ''}" style="max-width:${st === 6 ? 440 : 560}px">
     <div class="steps" aria-label="Step ${st + 1} of ${N}">${Array.from({ length: N }, (_, i) => `<i class="${i <= st ? 'on' : ''} ${i === st ? 'cur' : ''}"></i>`).join('')}</div>
     <div class="faint" style="text-align:center;font-size:12px">Step ${st + 1} of ${N}</div>
     ${body}</div>`,
