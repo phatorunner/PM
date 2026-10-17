@@ -5,7 +5,7 @@ import { esc } from '../core/utils.js';
 import { ic } from '../core/icons.js';
 import { A } from '../actions/actions.js';
 import { getActiveBibleVerse } from '../features/bible-verse.js';
-import { PRAYER_STATE, playDailyMorningPrayer } from '../features/gemini-prayer.js';
+import { PRAYER_STATE, playSituationPrayer } from '../features/gemini-prayer.js';
 import { render } from '../shell/render.js';
 
 export const WELCOME_EXAMPLES = [
@@ -14,7 +14,6 @@ export const WELCOME_EXAMPLES = [
     title: 'Morning prayer',
     desc: 'Listen to an uplifting, peaceful prayer generated with Gemini AI',
     image: '/morning-prayer.jpg',
-    prompt: 'Heavenly Father, thank You for the gift of today. Guide my thoughts, bless my hands, and grant me wisdom and diligence in every task I set out to accomplish today. Amen.',
     action: 'prayer',
   },
   {
@@ -22,22 +21,21 @@ export const WELCOME_EXAMPLES = [
     title: 'Strength and focus',
     desc: 'Seek peace and clarity amidst deadlines and complex tasks',
     image: '/strength-focus.jpg',
-    prompt: 'Lord, grant me strength when weary, clarity in decision-making, and patience through unexpected hurdles.',
-    action: 'prayer-text',
+    action: 'prayer',
   },
   {
     id: 'peace-rest',
     title: 'Peace and restful mind',
     desc: 'Cast all your anxieties upon Him, for He cares for you',
-    prompt: 'Peace I leave with you; my peace I give you. I do not give to you as the world gives. Do not let your hearts be troubled and do not be afraid.',
-    action: 'prayer-text',
+    image: '/peace-rest.jpg',
+    action: 'prayer',
   },
   {
     id: 'gratitude-journal',
     title: 'Evening thanksgiving',
     desc: 'Give thanks for victories, answered prayers, and growth today',
-    prompt: 'Thank You Lord for walking with me through this day and blessing the fruit of our labor.',
-    action: 'prayer-text',
+    image: '/evening-thanksgiving.jpg',
+    action: 'prayer',
   },
 ];
 
@@ -69,15 +67,15 @@ export function pageWelcome() {
       <!-- Curated Example Options / Devotional Cards (Single horizontal row of 4) -->
       ${
         isPrayerPlaying
-          ? `<div style="width:100%;margin-bottom:12px;display:flex;justify-content:flex-end"><span class="badge accent" style="display:inline-flex;align-items:center;gap:5px;font-size:11px">${ic('volume-2', 12)}Playing Morning Prayer</span></div>`
+          ? `<div style="width:100%;margin-bottom:12px;display:flex;justify-content:flex-end"><span class="badge accent" style="display:inline-flex;align-items:center;gap:5px;font-size:11px">${ic('volume-2', 12)}Playing ${esc(PRAYER_STATE.activeTitle || 'Prayer')}</span></div>`
           : ''
       }
 
       <div style="display:grid;grid-template-columns:repeat(4, 1fr);gap:14px;width:100%">
         ${WELCOME_EXAMPLES.map(ex => {
-          const isMorningPrayer = ex.id === 'morning-prayer';
-          const cardLoading = isMorningPrayer && isPrayerLoading;
-          const cardPlaying = isMorningPrayer && isPrayerPlaying;
+          const isThisActive = PRAYER_STATE.activeId === ex.id;
+          const cardLoading = isThisActive && isPrayerLoading;
+          const cardPlaying = isThisActive && isPrayerPlaying;
 
           let displayTitle = ex.title;
           let displayDesc = ex.desc;
@@ -86,8 +84,8 @@ export function pageWelcome() {
             displayTitle = 'Preparing prayer…';
             displayDesc = 'Generating peaceful audio via Gemini AI Studio…';
           } else if (cardPlaying) {
-            displayTitle = 'Playing Morning Prayer';
-            displayDesc = 'Listening to today’s peaceful morning prayer…';
+            displayTitle = `Playing ${ex.title}`;
+            displayDesc = 'Listening to today’s peaceful prayer…';
           }
 
           const photoHtml = ex.image
@@ -139,9 +137,9 @@ A.openWelcomePrompt = async el => {
   const item = WELCOME_EXAMPLES.find(x => x.id === el.dataset.id);
   if (!item) return;
 
-  if (item.id === 'morning-prayer') {
-    // Generate and play audio via Gemini 2.5 Flash
-    await playDailyMorningPrayer(() => render());
+  if (item.action === 'prayer') {
+    // Generate and play situation-focused audio via Gemini 3.8 Flash + TTS
+    await playSituationPrayer(item.id, item.title, () => render());
     return;
   }
 
